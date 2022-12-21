@@ -1,23 +1,28 @@
 #!/bin/env python3
 
+import os
 import re
+import sys
 import binascii
-from io import StringIO
 from tempfile import TemporaryFile
 from protobuf_inspector.types import StandardParser
 
 REGEX = r"(\\x0a\\x12.*)?\","
 parser = StandardParser()
 
-with open('strace.txt') as f:
+if len(sys.argv) != 2:
+    print('Usage: decoder <file>')
+    sys.exit(1)
+
+strace_file = sys.argv[1]
+if not os.path.exists(strace_file):
+    print(f'File "{strace_file}" does not exist!')
+    sys.exit(2)
+
+with open(strace_file) as f:
     data = f.read()
 
-#for match in re.search(REGEX, data):
-#    print(match.strip())
-#    from time import sleep
-#    sleep(5)
 results = re.findall(REGEX, data)
-
 for msg in results:
     if msg == '':
         continue
