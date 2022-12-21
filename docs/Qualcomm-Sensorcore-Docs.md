@@ -72,6 +72,7 @@ The `sscrpcd` is a pain to strace, it only does it thing at boot so you need to 
    - `adb shell`
 2. Android is a pain with its read-only rootFS, you need to remount /vendor first since we want to modify the services there (adb remount doesn't cut it here completely): `mount -o rw,remount /vendor`
 3. Open to `/vendor/etc/init/hw/init.qcom.rc` and change the service description for `sscrpcd` to (add `/bin/strace` which breaks startup, thanks SELinux, disabling the service the right way makes Android angry):
+
 ```
 service vendor.sensors /bin/strace /vendor/bin/sscrpcd sensorspd
         class early_hal
@@ -80,18 +81,11 @@ service vendor.sensors /bin/strace /vendor/bin/sscrpcd sensorspd
         capabilities BLOCK_SUSPEND
         writepid /dev/cpuset/system-background/tasks
 ```
+
 4. Reboot, LineageOS will keep showing the load animation as it will try to start the service but fails horribly thanks to SELinux not being happy with our voodoo from above.
 5. Run strace (needs a reboot each time you want to run it!):
-   - Everything interesting:
-   ```
-strace -f -s 2048 -e trace=recvfrom,sendto,file,desc,open,close 
-/vendor/bin/sscrpcd 2>/cache/log.txt
-```
-   - `ioctl`s for FastRPC (fd 8 is the FastRPC one):
-```
-strace -f -s 2048 -e raw=ioctl -e trace=ioctl -e read=8 
--e write=8 /vendor/bin/sscrpcd 2>/cache/log-ioctl.txt
-```
+   - Everything interesting: `strace -f -s 2048 -e trace=recvfrom,sendto,file,desc,open,close /vendor/bin/sscrpcd 2>/cache/log.txt`
+   - `ioctl`s for FastRPC (fd 8 is the FastRPC one): `strace -f -s 2048 -e raw=ioctl -e trace=ioctl -e read=8 -e write=8 /vendor/bin/sscrpcd 2>/cache/log-ioctl.txt`
 
 This took a few days to locate this daemon and getting an strace dump from it with useful data.
 
