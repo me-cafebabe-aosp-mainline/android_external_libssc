@@ -1,0 +1,3 @@
+[submodule "libqmi"]
+	path = libqmi
+	url = https://gitlab.freedesktop.org/mobile-broadband/libqmi.git
