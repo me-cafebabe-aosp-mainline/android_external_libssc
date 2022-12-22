@@ -55,8 +55,7 @@ cc_flags = cc.get_supported_arguments([
 add_project_arguments(cc_flags, language: 'c')
 
 glib_version = '2.56'
-glib_dep = dependency('glib-2.0', version: '>= ' + glib_version)
-gio_unix_dep = dependency('gio-unix-2.0')
+libqmi_version = '1.33.4'
 
 c_flags = [
   '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_' + glib_version.underscorify(),
@@ -64,10 +63,15 @@ c_flags = [
   '-DGLIB_DISABLE_DEPRECATION_WARNINGS',
 ]
 
+glib_dep = dependency('glib-2.0', version: '>= ' + glib_version)
+gio_unix_dep = dependency('gio-unix-2.0')
+libqmi_dep = dependency('qmi-glib', version: '>=' + libqmi_version)
+
 deps = [
   glib_dep,
   dependency('gio-2.0'),
   dependency('gobject-2.0'),
+  libqmi_dep,
 ]
 
 glib_deps = declare_dependency(
