@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _SSC_SENSOR_PROXY_H_
-#define _SSC_SENSOR_PROXY_H_
+#ifndef _PROXY_SENSOR_CLIENT_H_
+#define _PROXY_SENSOR_CLIENT_H_
 
-#include <stdio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <fcntl.h>
@@ -28,9 +27,7 @@
 #include <gio/gio.h>
 #include <libqmi-glib.h>
 
-struct SSCSensorProxy {
-	GMainLoop *loop;
-	gchar *device_str;
-};
+gboolean
+sensor_client_init(GFile *file);
 
-#endif /* _SSC_SENSOR_PROXY_H_ */
+#endif /* _PROXY_SENSOR_CLIENT_H_ */

@@ -17,17 +17,21 @@
  */
 
 #include "ssc-sensor-proxy.h"
+#include "proxy-sensor-client.h"
 #include "proxy-version.h"
 
 int main(int argc, char *argv[])
 {
 	g_autoptr(GOptionContext) opt_context = NULL;
 	g_autoptr(GError) err = NULL;
+	GFile *file = NULL;
+	g_autofree gchar *device_str = "qrtr://0";
 	struct SSCSensorProxy proxy;
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
 	const GOptionEntry options[] = {
 		{ "version", 'v', 0, G_OPTION_ARG_NONE, &print_version, "Print version information and exit.", NULL },
+		{ "device", 'v', 0, G_OPTION_ARG_STRING, &device_str, "QMI device to use, default 'qrtr://0'.", NULL },
 		{ "debug", 'v', 0, G_OPTION_ARG_NONE, &debug, "Enable debug logs.", NULL },
 		{ NULL, 0, 0, G_OPTION_ARG_NONE, NULL, NULL, NULL }
 	};
@@ -48,9 +52,21 @@ int main(int argc, char *argv[])
 	g_info("ssc-sensor-proxy %d.%d.%d starting", PROXY_MAJOR_VERSION, PROXY_MINOR_VERSION, PROXY_PATCH_VERSION);
 
 	/* Enable debug logs if requested */
-	if (debug)
+	if (debug) {
 		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
+		qmi_utils_set_traces_enabled (TRUE);
+        	qmi_utils_set_show_personal_info (TRUE);
 		g_debug("Debug messages enabled");
+	}
+
+	/* Read QMI device node */
+	proxy.device_str = g_strdup(device_str);
+	g_debug("QMI device: %s", proxy.device_str);
+
+	/* Initialize QMI sensor client */
+	file = g_file_new_for_commandline_arg (proxy.device_str);
+	if (!sensor_client_init (file))
+		return EXIT_FAILURE;
 
 	/* Start GLib main loop */
 	proxy.loop = g_main_loop_new(NULL, FALSE);

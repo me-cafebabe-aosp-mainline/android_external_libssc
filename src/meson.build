@@ -27,7 +27,8 @@ version_header = configure_file(
 )
 
 headers = files(
-  'ssc-sensor-proxy.h'
+  'ssc-sensor-proxy.h',
+  'proxy-sensor-client.h',
 )
 install_headers(
   headers, 
@@ -36,6 +37,7 @@ install_headers(
 
 sources = files(
   'ssc-sensor-proxy.c',
+  'proxy-sensor-client.c',
 )
 
 ssc_sensor_proxy = executable(
