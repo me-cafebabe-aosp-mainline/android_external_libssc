@@ -23,7 +23,7 @@ project(
   license: 'GPL3',
   default_options: [
     'buildtype=debugoptimized',
-    'c_std=gnu89',
+    'c_std=gnu99',
     'warning_level=2',
   ],
   meson_version: '>= 0.53.0',
