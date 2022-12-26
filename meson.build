@@ -83,6 +83,9 @@ glib_deps = declare_dependency(
 )
 
 top_inc = include_directories('.')
+data_inc = include_directories('./data')
+src_inc = include_directories('./src')
+includes = [top_inc, data_inc, src_inc]
 sources = files()
 headers = files()
 

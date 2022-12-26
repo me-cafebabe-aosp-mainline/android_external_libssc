@@ -43,7 +43,7 @@ sources += files(
 ssc_sensor_proxy = executable(
   'ssc-sensor-proxy',
   sources: sources,
-  include_directories: top_inc,
+  include_directories: includes,
   dependencies: deps,
   install: true,
 )

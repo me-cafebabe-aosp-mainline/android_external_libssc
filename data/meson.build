@@ -17,10 +17,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+msgs_inc = include_directories('.')
+
 msgs = [
   'shared',
   'suid-sensor',
 ]
+sources_gen = []
+headers_gen = []
 
 foreach m: msgs
   name = 'ssc-' + m
@@ -32,4 +36,13 @@ foreach m: msgs
     install: true,
     install_dir: [false, proxy_glib_pkgincludedir]
   )
+  sources_gen += protobuf_gen[0]
+  headers_gen += protobuf_gen[1]
 endforeach
+
+generated_dep = declare_dependency(
+  sources: sources_gen + headers_gen,
+  include_directories: includes,
+  dependencies: deps
+)
+deps += generated_dep
