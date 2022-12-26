@@ -16,7 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 syntax = "proto2";
-package ssc.sensor.proxy;
 
 /*
  * Each message specifies a message type to indicate the

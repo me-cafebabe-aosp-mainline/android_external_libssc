@@ -66,12 +66,15 @@ c_flags = [
 glib_dep = dependency('glib-2.0', version: '>= ' + glib_version)
 gio_unix_dep = dependency('gio-unix-2.0')
 libqmi_dep = dependency('qmi-glib', version: '>=' + libqmi_version)
+protobufc_dep = dependency('libprotobuf-c')
+protoc_tool = find_program('protoc', 'protoc-c')
 
 deps = [
   glib_dep,
   dependency('gio-2.0'),
   dependency('gobject-2.0'),
   libqmi_dep,
+  protobufc_dep
 ]
 
 glib_deps = declare_dependency(
@@ -80,7 +83,9 @@ glib_deps = declare_dependency(
 )
 
 top_inc = include_directories('.')
+sources = files()
+headers = files()
 
+subdir('data')
 subdir('src')
-#subdir('utils')
 

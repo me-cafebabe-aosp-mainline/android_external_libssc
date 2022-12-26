@@ -17,7 +17,6 @@
  */
 syntax = "proto2";
 import "ssc-shared.proto";
-package ssc.sensor.proxy;
 
 /*
  * SUID sensor request to retrieve information about available sensors.

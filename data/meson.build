@@ -7,7 +7,7 @@
 # it under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#  
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -17,33 +17,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-proxy_glib_inc = include_directories('.')
+msgs = [
+  'shared',
+  'suid-sensor',
+]
 
-version_header = configure_file(
-  input: 'proxy-version.h.in',
-  output: '@BASENAME@',
-  configuration: version_conf,
-  install_dir: proxy_glib_pkgincludedir,
-)
-
-headers += files(
-  'ssc-sensor-proxy.h',
-  'proxy-sensor-client.h',
-)
-install_headers(
-  headers, 
-  install_dir: proxy_glib_pkgincludedir
-)
-
-sources += files(
-  'ssc-sensor-proxy.c',
-  'proxy-sensor-client.c',
-)
-
-ssc_sensor_proxy = executable(
-  'ssc-sensor-proxy',
-  sources: sources,
-  include_directories: top_inc,
-  dependencies: deps,
-  install: true,
-)
+foreach m: msgs
+  name = 'ssc-' + m
+  protobuf_gen = custom_target (
+    name,
+    input: name + '.proto',
+    output: [name + '.pb-c.c', name + '.pb-c.h'],
+    command: [protoc_tool, '--proto_path=@CURRENT_SOURCE_DIR@', '--c_out=@OUTDIR@', '@INPUT@'],
+    install: true,
+    install_dir: [false, proxy_glib_pkgincludedir]
+  )
+endforeach
