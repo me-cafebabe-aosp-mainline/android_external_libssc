@@ -131,23 +131,63 @@ get_sensor_list_ready (QmiClientSsc *client,
 	g_debug("Signals registered for indications");
 }
 
+static GArray * 
+generate_suid_sensor_request (){
+	SscSuidSensorRequestMessage__SscSuidSensorRequest__SscSuidSensorRequestData data = SSC_SUID_SENSOR_REQUEST_MESSAGE__SSC_SUID_SENSOR_REQUEST__SSC_SUID_SENSOR_REQUEST_DATA__INIT;
+	SscSuidSensorRequestMessage__SscSuidSensorRequest request = SSC_SUID_SENSOR_REQUEST_MESSAGE__SSC_SUID_SENSOR_REQUEST__INIT;
+	SscSharedConfig config = SSC_SHARED_CONFIG__INIT; /* default values: APSS, WAKEUP */
+	SscSharedUid uid = SSC_SHARED_UID__INIT;
+	SscSuidSensorRequestMessage msg = SSC_SUID_SENSOR_REQUEST_MESSAGE__INIT;
+	GArray *buf = NULL;
+
+	/* Request data: a list of all available sensors and their attributes */
+	data.data_type = "";
+	data.has_enable_updates = true;
+	data.enable_updates = true;
+	data.has_only_default_values = true;
+	data.only_default_values = true;
+
+	/* Request */
+	request.data = &data;
+
+	/* Sensor UID is known for SUID sensor */
+	uid.uid_low = 0xABABABABABABABAB;
+	uid.uid_high = 0xABABABABABABABAB;
+
+	/* Request message */
+	msg.sensor_uid = &uid;
+	msg.msg_type = SSC_SHARED_MSG_TYPE__SSC_MSG_REQUEST_ATTRIBUTE;
+	msg.config = &config;
+	msg.request = &request;
+
+	/* Build GArray from ProtoBuf message */
+	buf = g_array_new (FALSE, FALSE, 1);
+	g_array_set_size (buf, ssc_suid_sensor_request_message__get_packed_size(&msg));
+	ssc_suid_sensor_request_message__pack (&msg, (unsigned char*) buf->data);
+
+	return buf;
+}
+
 static void
 get_sensor_list (Context *ctx) {
 	QmiMessageSscControlInput *input = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr (GArray) protobuf = NULL;
 
+	/* Build ProtoBuf */
+	protobuf = generate_suid_sensor_request();
+
+	if (protobuf == NULL) {
+		g_error ("Building ProtoBuf message failed");
+		return;
+	}
+
+	/* Package ProtoBuf message into QMI message */
 	input = qmi_message_ssc_control_input_new ();
 	if (!qmi_message_ssc_control_input_set_unknown_value (input, UNKNOWN_VALUE, &error)) {
 		g_printerr ("error: inserting Unknown Value failed: %s\n", error->message);
 		qmi_message_ssc_control_input_unref (input);
 		return;
-	}
-
-	/* Build protobuf */
-	protobuf = g_array_new(FALSE, FALSE, sizeof (guint8));
-	for (guint i=0; i < SENSOR_DISCOVERY_LEN; i++) {
-		g_array_append_val (protobuf, protobuf_sensor_discovery[i]);
 	}
 
 	if (!qmi_message_ssc_control_input_set_protobuf_data (input, protobuf, &error)) {
@@ -156,6 +196,7 @@ get_sensor_list (Context *ctx) {
 		return;
 	}
 
+	/* Send QMI message */
 	qmi_client_ssc_control (ctx->client,
 		input,
 		10,

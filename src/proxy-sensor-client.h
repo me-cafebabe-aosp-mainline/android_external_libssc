@@ -26,6 +26,10 @@
 #include <sys/stat.h>
 #include <gio/gio.h>
 #include <libqmi-glib.h>
+#include <stdbool.h>
+
+#include "ssc-shared.pb-c.h"
+#include "ssc-suid-sensor.pb-c.h"
 
 gboolean
 sensor_client_init(GFile *file);
