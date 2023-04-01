@@ -17,216 +17,40 @@
  */
 
 #include "libssc-client.h"
-#include "libssc.h"
-
-#define UNKNOWN_VALUE 1
-#define SENSOR_DISCOVERY_LEN 41
-
-typedef struct {
-	QmiDevice *device;
-	QmiClientSsc *client;
-	QrtrBus *bus;
-	guint32 node_id;
-	guint indication_report_small_id; // TODO: context_free disconnect
-	guint indication_report_large_id;
-} Context;
 
 static void
-handle_report(guint64 client_id, GArray *protobuf_data)
+allocate_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 {
-	g_debug("report: client ID: %" G_GUINT64_FORMAT "", client_id);
-	g_debug("report: ProtoBuf data:");
-	for (guint i = 0; i < protobuf_data->len; i++) {
-		guint8 value = g_array_index (protobuf_data, guint8, i);
-		g_print ("\\x%02x", value);
-	}
-	g_printf("\n");
-}
-
-static void
-report_large_received (QmiClientSsc *client,
-	QmiIndicationSscReportLargeOutput *output,
-	gpointer user_data)
-{
-	guint64 client_id;
-	GArray *protobuf_data = NULL;
-	g_autoptr (GError) error = NULL;
-
-	if (!qmi_indication_ssc_report_large_output_get_client_id (output, &client_id, &error)) {
-		g_printerr ("error: cannot extract client ID (large): %s\n", error->message);
-		return;
-	}
-
-	if (!qmi_indication_ssc_report_large_output_get_protobuf_data (output, &protobuf_data, &error)) {
-		g_printerr ("error: cannot extract ProtoBuf data (large): %s\n", error->message);
-		return;
-	}
-
-	handle_report(client_id, protobuf_data);
-}
-
-static void
-report_small_received (QmiClientSsc *client,
-	QmiIndicationSscReportSmallOutput *output,
-	gpointer user_data)
-{
-	guint64 client_id;
-	GArray *protobuf_data = NULL;
-	g_autoptr (GError) error = NULL;
-
-	if (!qmi_indication_ssc_report_small_output_get_client_id (output, &client_id, &error)) {
-		g_printerr ("error: cannot extract client ID (small): %s\n", error->message);
-		return;
-	}
-
-	if (!qmi_indication_ssc_report_small_output_get_protobuf_data (output, &protobuf_data, &error)) {
-		g_printerr ("error: cannot extract ProtoBuf data (small): %s\n", error->message);
-		return;
-	}
-
-	handle_report(client_id, protobuf_data);
-}
-
-static void
-get_sensor_list_ready (QmiClientSsc *client,
-	GAsyncResult *res,
-	gpointer user_data)
-{
-	Context *ctx = user_data;
-	QmiMessageSscControlOutput *output = NULL;
-	g_autoptr (GError) error = NULL;
-
-	output = qmi_client_ssc_control_finish (client, res, &error);
-	if (!output) {
-		g_printerr ("error: operation failed: %s\n", error->message);
-		qmi_message_ssc_control_output_unref (output);
-		return;
-	}
-
-	if (!qmi_message_ssc_control_output_get_result (output, &error)) {
-		g_printerr ("error: couldn't get sensor list: %s\n", error->message);
-		qmi_message_ssc_control_output_unref (output);
-		return;
-	}
-
-	g_debug("Sensor list retrieval success");
-	qmi_message_ssc_control_output_unref (output);
-
-	ctx->indication_report_small_id = g_signal_connect (ctx->client,
-		"report-small",
-		G_CALLBACK (report_small_received),
-		ctx);
-	ctx->indication_report_large_id = g_signal_connect (ctx->client,
-		"report-large",
-		G_CALLBACK (report_large_received),
-		ctx);
-	g_debug("Signals registered for indications");
-}
-
-static GArray * 
-generate_suid_sensor_request ()
-{
-	SscSuidSensorRequestMessage__SscSuidSensorRequest__SscSuidSensorRequestData data = SSC_SUID_SENSOR_REQUEST_MESSAGE__SSC_SUID_SENSOR_REQUEST__SSC_SUID_SENSOR_REQUEST_DATA__INIT;
-	SscSuidSensorRequestMessage__SscSuidSensorRequest request = SSC_SUID_SENSOR_REQUEST_MESSAGE__SSC_SUID_SENSOR_REQUEST__INIT;
-	SscSharedConfig config = SSC_SHARED_CONFIG__INIT; /* default values: APSS, WAKEUP */
-	SscSharedUid uid = SSC_SHARED_UID__INIT;
-	SscSuidSensorRequestMessage msg = SSC_SUID_SENSOR_REQUEST_MESSAGE__INIT;
-	GArray *buf = NULL;
-
-	/* Request data: a list of all available sensors and their attributes */
-	data.data_type = "";
-	data.has_enable_updates = true;
-	data.enable_updates = true;
-	data.has_only_default_values = true;
-	data.only_default_values = true;
-
-	/* Request */
-	request.data = &data;
-
-	/* Sensor UID is known for SUID sensor */
-	uid.uid_low = 0xABABABABABABABAB;
-	uid.uid_high = 0xABABABABABABABAB;
-
-	/* Request message */
-	msg.sensor_uid = &uid;
-	msg.msg_type = SSC_SHARED_MSG_TYPE__SSC_MSG_REQUEST_ATTRIBUTE;
-	msg.config = &config;
-	msg.request = &request;
-
-	/* Build GArray from ProtoBuf message */
-	buf = g_array_new (FALSE, FALSE, 1);
-	g_array_set_size (buf, ssc_suid_sensor_request_message__get_packed_size(&msg));
-	ssc_suid_sensor_request_message__pack (&msg, (unsigned char*) buf->data);
-
-	return buf;
-}
-
-static void
-get_sensor_list (Context *ctx) {
-	QmiMessageSscControlInput *input = NULL;
 	g_autoptr(GError) error = NULL;
-	g_autoptr (GArray) protobuf = NULL;
+	GTask *task = NULL;
+	SSCClient *client = NULL;
 
-	/* Build ProtoBuf */
-	protobuf = generate_suid_sensor_request();
+	task = G_TASK (user_data);
+	client = g_task_get_task_data (task);
 
-	if (protobuf == NULL) {
-		g_error ("Building ProtoBuf message failed");
+	client->qmi_client_ssc = QMI_CLIENT_SSC (qmi_device_allocate_client_finish (device, result, &error));
+
+	if (error) {
+		g_task_return_error (task, error);
 		return;
-	}
-
-	/* Package ProtoBuf message into QMI message */
-	input = qmi_message_ssc_control_input_new ();
-	if (!qmi_message_ssc_control_input_set_unknown_value (input, UNKNOWN_VALUE, &error)) {
-		g_printerr ("error: inserting Unknown Value failed: %s\n", error->message);
-		qmi_message_ssc_control_input_unref (input);
-		return;
-	}
-
-	if (!qmi_message_ssc_control_input_set_protobuf_data (input, protobuf, &error)) {
-		g_printerr ("error: inserting ProtoBuf data failed: %s\n", error->message);
-		qmi_message_ssc_control_input_unref (input);
-		return;
-	}
-
-	/* Send QMI message */
-	qmi_client_ssc_control (ctx->client,
-		input,
-		10,
-		NULL,
-		(GAsyncReadyCallback)get_sensor_list_ready,
-		ctx);
-	qmi_message_ssc_control_input_unref (input);
-}
-
-static void
-allocate_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data) {
-	g_autoptr(GError) error = NULL;
-	Context *ctx = user_data;
-
-	ctx->client = QMI_CLIENT_SSC (qmi_device_allocate_client_finish (device, result, &error));
-
-	if (!ctx->client) {
-		g_printerr ("error: couldn't create client for SSC service: %s\n",
-			error->message);
-		exit(EXIT_FAILURE);
 	}
 
 	/* QMI client allocated */
-	get_sensor_list(ctx);
+	g_debug ("QMI SSC client allocated");
 }
 
 static void
-device_open_ready (QmiDevice *device,
-	GAsyncResult *result,
-	gpointer user_data)
+device_open_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
-	Context *ctx = user_data;
+	GTask *task = NULL;
 
-	if (!qmi_device_open_finish (device, result, &error)) {
-		g_printerr ("error: couldn't open the QMI device: %s\n", error->message);
-		exit (EXIT_FAILURE);
+	task = G_TASK (user_data);
+
+	qmi_device_open_finish (device, result, &error);
+	if (error) {
+		g_task_return_error (task, error);
+		return;
 	}
 
 	g_debug ("QMI device at '%s' ready", qmi_device_get_path_display (device));
@@ -238,22 +62,26 @@ device_open_ready (QmiDevice *device,
 		10,
 		NULL,
 		(GAsyncReadyCallback)allocate_client_ready,
-		ctx);
+		g_object_ref (task));
+
+	g_clear_object (&task);
 }
 
 static void
-device_new_ready (GObject *unused,
-	GAsyncResult *res,
-	gpointer user_data)
+device_new_ready (GObject *unused, GAsyncResult *res, gpointer user_data)
 {
 	QmiDeviceOpenFlags open_flags = QMI_DEVICE_OPEN_FLAGS_NONE;
 	g_autoptr(GError) error = NULL;
-	Context *ctx = user_data;
+	GTask *task = NULL;
+	SSCClient *client = NULL;
 
-	ctx->device = qmi_device_new_finish (res, &error);
-	if (!ctx->device) {
-		g_printerr ("error: couldn't create QMI device: %s\n", error->message);
-		exit (EXIT_FAILURE);
+	task = G_TASK (user_data);
+	client = g_task_get_task_data (task);
+
+	client->device = qmi_device_new_finish (res, &error);
+	if (error) {
+		g_task_return_error (task, error);
+		return;
 	}
 
 	/* Indications are expected as they report all sensor data values */
@@ -261,68 +89,139 @@ device_new_ready (GObject *unused,
 	open_flags |= QMI_DEVICE_OPEN_FLAGS_EXPECT_INDICATIONS;
 
 	/* QMI device created, open device */
-	qmi_device_open (ctx->device,
+	qmi_device_open (client->device,
 		open_flags,
 		15,
 		NULL,
 		(GAsyncReadyCallback)device_open_ready,
-		ctx);
+		g_object_ref (task));
+
+	g_clear_object (&task);
 }
 
 static void
-bus_new_ready (GObject *source,
-	GAsyncResult *res,
-	gpointer user_data)
+bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
 	QrtrNode *node;
-	Context *ctx = user_data;
+	GTask *task = NULL;
+	SSCClient *client = NULL;
 
-	ctx->bus = qrtr_bus_new_finish (res, &error);
-	if (!ctx->bus) {
-		g_printerr ("error: couldn't access QRTR bus: %s\n", error->message);
-		exit (EXIT_FAILURE);
+	task = G_TASK (user_data);
+	client = g_task_get_task_data (task);
+
+	client->bus = qrtr_bus_new_finish (res, &error);
+	if (error) {
+		g_task_return_error (task, error);
+		return;
 	}
 
-	node = qrtr_bus_peek_node (ctx->bus, ctx->node_id);
+	node = qrtr_bus_peek_node (client->bus, client->node_id);
 	if (!node) {
-		g_printerr ("error: node with id %" G_GUINT32_FORMAT "not found in QRTR bus\n", ctx->node_id);
-		exit (EXIT_FAILURE);
+		g_task_return_new_error (task,
+					 LIBSSC_ERROR,
+					 LIBSSC_ERROR_QRTR_NODE_NOT_FOUND,
+					 "node with id %" G_GUINT32_FORMAT "not found in QRTR bus",
+					 client->node_id);
+		return;
 	}
 
 	/* QRTR node ready, create QMI device */
 	qmi_device_new_from_node (node,
 		NULL,
 		(GAsyncReadyCallback)device_new_ready,
-		ctx);
+		g_object_ref (task));
+
+	g_clear_object (&task);
 }
 
-gboolean
-sensor_client_init(GFile *file) {
+static void
+client_init (GTask *task)
+{
 #if QMI_QRTR_SUPPORTED
 	{
+		GFile *file = NULL;
+		SSCClient *client = NULL;
 		g_autofree gchar *id = NULL;
-		Context *ctx = NULL;
 
-		/* Initialize context */
-		ctx = g_slice_new (Context);
+		file = g_task_get_task_data (task);
+
+		client = g_slice_new (SSCClient);
+		g_task_set_task_data (task, client, NULL);
 
 		/* Open node on QRTR bus */
 		id = g_file_get_uri (file);
-		if (qrtr_get_node_for_uri (id, &ctx->node_id)) {
-			g_debug("Opening node ID %" G_GUINT32_FORMAT " on QRTR bus", ctx->node_id);
+		if (qrtr_get_node_for_uri (id, &client->node_id)) {
+			g_debug("Opening node ID %" G_GUINT32_FORMAT " on QRTR bus", client->node_id);
 			qrtr_bus_new (1000, /* ms */
 				NULL,
 				(GAsyncReadyCallback)bus_new_ready,
-				ctx);
-			return TRUE;
+				task);
+
+			g_clear_object (&task);
+			return;
 		}
 
-		g_printerr ("error: Device URI is not a QRTR node: %s\n", id);
-		return FALSE;
+		g_task_return_new_error (task,
+					 LIBSSC_ERROR,
+					 LIBSSC_ERROR_QRTR_DEVICE_URI,
+					 "Device URI is not a QRTR node: %s",
+					 id);
+		g_clear_object (&task);
+		return;
 	}
 # else
-	g_printerr("error: Only QRTR QMI devices are supported. Compile libqmi with QRTR support.\n");
-	return FALSE;
+	g_task_return_new_error (task,
+				 LIBSSC_ERROR,
+				 LIBSSC_ERROR_QRTR_UNSUPPORTED,
+				 "Only QRTR QMI devices are supported. Compile libqmi with QRTR support")
+	return;
 #endif
+}
+
+static void client_free (SSCClient *client)
+{
+	// TODO: free
+	return;
+}
+
+static void
+client_init_thread(GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable)
+{
+	g_task_set_check_cancellable (task, FALSE);
+
+	client_init (task);
+}
+
+void
+ssc_client_init (GObject *self, GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+{
+	GTask *task = NULL;
+	
+	task = g_task_new (file, cancellable, callback, user_data);
+	g_task_set_task_data (task, file, NULL);
+	g_task_set_check_cancellable (task, FALSE);
+
+	client_init (task);
+}
+
+SSCClient *
+ssc_client_init_finish (GObject *self, GAsyncResult *res, GError **error)
+{
+	return g_task_propagate_pointer (G_TASK (res), error);
+}
+
+SSCClient *
+ssc_client_init_sync (GObject *self, GFile *file, GError **error)
+{
+	GTask *task = NULL;
+	SSCClient *client = NULL;
+	
+	task = g_task_new (self, NULL, NULL, NULL);
+	g_task_set_task_data (task, file, NULL);
+	g_task_run_in_thread_sync (task, client_init_thread);
+
+	client = g_task_propagate_pointer (task, error);
+	g_object_unref (task);
+	return client;
 }

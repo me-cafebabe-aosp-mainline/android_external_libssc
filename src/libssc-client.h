@@ -26,12 +26,31 @@
 #include <sys/stat.h>
 #include <gio/gio.h>
 #include <libqmi-glib.h>
-#include <stdbool.h>
 
-#include "ssc-shared.pb-c.h"
-#include "ssc-suid-sensor.pb-c.h"
+typedef enum {
+	LIBSSC_ERROR_QRTR_DEVICE_URI,
+	LIBSSC_ERROR_QRTR_UNSUPPORTED,
+	LIBSSC_ERROR_QRTR_NODE_NOT_FOUND,
+} SSCError;
+G_DEFINE_QUARK(ssc-error-quark, ssc_error)
+#define LIBSSC_ERROR (ssc_error_quark())
 
-gboolean
-sensor_client_init(GFile *file);
+typedef struct {
+	QmiDevice *device;
+	QmiClientSsc *qmi_client_ssc;
+	QrtrBus *bus;
+	guint32 node_id;
+	guint indication_report_small_id;
+	guint indication_report_large_id;
+} SSCClient;
+
+void
+ssc_client_init (GObject *self, GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+
+SSCClient *
+ssc_client_init_finish (GObject *self, GAsyncResult *res, GError **error);
+
+SSCClient *
+ssc_client_init_sync (GObject *self, GFile *file, GError **error);
 
 #endif /* _LIBSSC_CLIENT_H_ */

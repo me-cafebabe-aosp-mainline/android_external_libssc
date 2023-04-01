@@ -16,9 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libssc.h"
 #include "libssc-client.h"
+#include "libssc-cli.h"
 #include "libssc-version.h"
+
+static void
+client_init_ready (GObject *self, GAsyncResult *res, gpointer user_data)
+{
+	g_autoptr (GError) err = NULL;
+	SSCClient *client = NULL;
+
+	client = ssc_client_init_finish (self, res, &err);
+
+	if (err) {
+		g_printerr ("Failed to allocate SSC client: %s", err->message);
+		return;
+	}
+
+	g_info ("SSC client initialized");
+}
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +42,8 @@ int main(int argc, char *argv[])
 	g_autoptr(GError) err = NULL;
 	GFile *file = NULL;
 	g_autofree gchar *device_str = "qrtr://0";
-	struct SSCCli cli;
+	SSCCli cli;
+	GObject *obj;
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
 	const GOptionEntry options[] = {
@@ -39,13 +56,13 @@ int main(int argc, char *argv[])
 	opt_context = g_option_context_new ("- CLI tool of libssc for Qualcomm Sensor Core sensors");
 	g_option_context_add_main_entries (opt_context, options, NULL);
 	if (!g_option_context_parse (opt_context, &argc, &argv, &err)) {
-		g_warning("Parsing CLI options failed: %s", err->message);
+		g_warning ("Parsing CLI options failed: %s", err->message);
 		return -1;
 	}
 
 	/* Print version and exit */
 	if (print_version) {
-		printf("libssc version %d.%d.%d\n", LIBSSC_MAJOR_VERSION, LIBSSC_MINOR_VERSION, LIBSSC_PATCH_VERSION);
+		printf ("libssc version %d.%d.%d\n", LIBSSC_MAJOR_VERSION, LIBSSC_MINOR_VERSION, LIBSSC_PATCH_VERSION);
 		return 0;
 	}
 
@@ -56,17 +73,27 @@ int main(int argc, char *argv[])
 		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
 		qmi_utils_set_traces_enabled (TRUE);
         	qmi_utils_set_show_personal_info (TRUE);
-		g_debug("Debug messages enabled");
+		g_debug ("Debug messages enabled");
 	}
 
 	/* Read QMI device node */
 	cli.device_str = g_strdup(device_str);
-	g_debug("QMI device: %s", cli.device_str);
+	g_debug ("QMI device: %s", cli.device_str);
 
 	/* Initialize QMI sensor client */
+	obj = g_object_new (G_TYPE_OBJECT, NULL);
 	file = g_file_new_for_commandline_arg (cli.device_str);
-	if (!sensor_client_init (file))
+	//ssc_client_init (obj, file, NULL, (GAsyncReadyCallback)client_init_ready, NULL);
+	cli.client = ssc_client_init_sync (obj, file, &err);
+	if (!err) {
+		g_printerr ("Failed to allocate SSC client: %s", err->message);
+		return;
+	}
+
+	if (!cli.client)
 		return EXIT_FAILURE;
+
+	g_info ("SSC client sync initialized");
 
 	/* Start GLib main loop */
 	cli.loop = g_main_loop_new(NULL, FALSE);

@@ -27,10 +27,12 @@
 #include <sys/stat.h>
 #include <gio/gio.h>
 #include <libqmi-glib.h>
+#include "libssc-client.h"
 
-struct SSCCli {
+typedef struct {
 	GMainLoop *loop;
 	gchar *device_str;
-};
+	SSCClient *client;
+} SSCCli;
 
 #endif /* _LIBSSC_CLI_H_ */
