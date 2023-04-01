@@ -1,6 +1,6 @@
 /*
- * ssc-sensor-proxy: a drop-in replacement for iio-sensor-proxy for SSC support
- * Copyright (C) 2022 Dylan Van Assche
+ * libssc: Library to expose Qualcomm Sensor Core sensors
+ * Copyright (C) 2022-2023 Dylan Van Assche
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _SSC_SENSOR_PROXY_H_
-#define _SSC_SENSOR_PROXY_H_
+#ifndef _LIBSSC_CLIENT_H_
+#define _LIBSSC_CLIENT_H_
 
-#include <stdio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <fcntl.h>
@@ -27,10 +26,12 @@
 #include <sys/stat.h>
 #include <gio/gio.h>
 #include <libqmi-glib.h>
+#include <stdbool.h>
 
-struct SSCSensorProxy {
-	GMainLoop *loop;
-	gchar *device_str;
-};
+#include "ssc-shared.pb-c.h"
+#include "ssc-suid-sensor.pb-c.h"
 
-#endif /* _SSC_SENSOR_PROXY_H_ */
+gboolean
+sensor_client_init(GFile *file);
+
+#endif /* _LIBSSC_CLIENT_H_ */

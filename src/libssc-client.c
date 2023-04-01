@@ -1,6 +1,6 @@
 /*
- * ssc-sensor-proxy: a drop-in replacement for iio-sensor-proxy for SSC support
- * Copyright (C) 2022 Dylan Van Assche
+ * libssc: Library to expose Qualcomm Sensor Core sensors
+ * Copyright (C) 2022-2023 Dylan Van Assche
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "proxy-sensor-client.h"
-#include "ssc-sensor-proxy.h"
+#include "libssc-client.h"
+#include "libssc.h"
 
 #define UNKNOWN_VALUE 1
 #define SENSOR_DISCOVERY_LEN 41
@@ -30,14 +30,6 @@ typedef struct {
 	guint indication_report_small_id; // TODO: context_free disconnect
 	guint indication_report_large_id;
 } Context;
-
-guint8 protobuf_sensor_discovery[SENSOR_DISCOVERY_LEN] = {
-	0x0a, 0x12, 0x09, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
-       	0xab, 0x11, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
-       	0x15, 0x00, 0x02, 0x00, 0x00, 0x1a, 0x04, 0x08, 0x01, 0x10,
-       	0x00, 0x22, 0x08, 0x12, 0x06, 0x0a, 0x00, 0x10, 0x01, 0x18,
-       	0x00
-};
 
 static void
 handle_report(guint64 client_id, GArray *protobuf_data)
@@ -132,7 +124,8 @@ get_sensor_list_ready (QmiClientSsc *client,
 }
 
 static GArray * 
-generate_suid_sensor_request (){
+generate_suid_sensor_request ()
+{
 	SscSuidSensorRequestMessage__SscSuidSensorRequest__SscSuidSensorRequestData data = SSC_SUID_SENSOR_REQUEST_MESSAGE__SSC_SUID_SENSOR_REQUEST__SSC_SUID_SENSOR_REQUEST_DATA__INIT;
 	SscSuidSensorRequestMessage__SscSuidSensorRequest request = SSC_SUID_SENSOR_REQUEST_MESSAGE__SSC_SUID_SENSOR_REQUEST__INIT;
 	SscSharedConfig config = SSC_SHARED_CONFIG__INIT; /* default values: APSS, WAKEUP */

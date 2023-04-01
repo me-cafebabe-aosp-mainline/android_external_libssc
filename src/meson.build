@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# ssc-sensor-proxy: a drop-in replacement for iio-sensor-proxy for SSC support
-# Copyright (C) 2022 Dylan Van Assche
+# libssc: Library to expose Qualcomm Sensor Core sensors
+# Copyright (C) 2022-2023 Dylan Van Assche
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -17,33 +17,50 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-proxy_glib_inc = include_directories('.')
+libssc_glib_inc = include_directories('.')
 
 version_header = configure_file(
-  input: 'proxy-version.h.in',
+  input: 'libssc-version.h.in',
   output: '@BASENAME@',
   configuration: version_conf,
-  install_dir: proxy_glib_pkgincludedir,
+  install_dir: libssc_glib_pkgincludedir,
 )
 
 headers += files(
-  'ssc-sensor-proxy.h',
-  'proxy-sensor-client.h',
+  'libssc-client.h',
 )
+
+cli_headers = files(
+  'libssc-cli.h',
+)
+
 install_headers(
-  headers, 
-  install_dir: proxy_glib_pkgincludedir
+  headers + cli_headers, 
+  install_dir: libssc_glib_pkgincludedir
 )
 
 sources += files(
-  'ssc-sensor-proxy.c',
-  'proxy-sensor-client.c',
+  'libssc-client.c',
 )
 
-ssc_sensor_proxy = executable(
-  'ssc-sensor-proxy',
+cli_sources = files(
+  'libssc-cli.c',
+)
+
+libssc = library(
+  'libssc',
   sources: sources,
   include_directories: includes,
   dependencies: deps,
+  install: true,
+  soversion: '0',
+)
+
+ssccli = executable(
+  'ssccli',
+  sources: cli_sources,
+  include_directories: includes,
+  dependencies: deps,
+  link_with: libssc,
   install: true,
 )

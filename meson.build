@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# ssc-sensor-proxy: a drop-in replacement for iio-sensor-proxy for SSC support
-# Copyright (C) 2022 Dylan Van Assche
+# libssc: Library to expose Qualcomm Sensor Core sensors
+# Copyright (C) 2022-2023 Dylan Van Assche
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -18,7 +18,7 @@
 #
 
 project(
-  'ssc-sensor-proxy', 'c',
+  'libssc', 'c',
   version: '0.0.1',
   license: 'GPL3',
   default_options: [
@@ -29,22 +29,22 @@ project(
   meson_version: '>= 0.53.0',
 )
 
-proxy_name = meson.project_name()
-proxy_version = meson.project_version()
-version_array = proxy_version.split('.')
-proxy_version_major = version_array[0].to_int()
-proxy_version_minor = version_array[1].to_int()
-proxy_version_patch = version_array[2].to_int()
+libssc_name = meson.project_name()
+libssc_version = meson.project_version()
+version_array = libssc_version.split('.')
+libssc_version_major = version_array[0].to_int()
+libssc_version_minor = version_array[1].to_int()
+libssc_version_patch = version_array[2].to_int()
 
 version_conf = configuration_data()
-version_conf.set('VERSION', proxy_version)
-version_conf.set('PROXY_MAJOR_VERSION', proxy_version_major)
-version_conf.set('PROXY_MINOR_VERSION', proxy_version_minor)
-version_conf.set('PROXY_PATCH_VERSION', proxy_version_patch)
+version_conf.set('VERSION', libssc_version)
+version_conf.set('LIBSSC_MAJOR_VERSION', libssc_version_major)
+version_conf.set('LIBSSC_MINOR_VERSION', libssc_version_minor)
+version_conf.set('LIBSSC_PATCH_VERSION', libssc_version_patch)
 
-proxy_includedir = get_option('includedir')
-proxy_glib_include_subdir = proxy_name + '-glib'
-proxy_glib_pkgincludedir = proxy_includedir / proxy_glib_include_subdir
+libssc_includedir = get_option('includedir')
+libssc_glib_include_subdir = libssc_name + '-glib'
+libssc_glib_pkgincludedir = libssc_includedir / libssc_glib_include_subdir
 
 cc = meson.get_compiler('c')
 cc_flags = cc.get_supported_arguments([

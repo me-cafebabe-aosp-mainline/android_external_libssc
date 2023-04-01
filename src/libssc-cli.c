@@ -1,6 +1,6 @@
 /*
- * ssc-sensor-proxy: a drop-in replacement for iio-sensor-proxy for SSC support
- * Copyright (C) 2022 Dylan Van Assche
+ * libssc: Library to expose Qualcomm Sensor Core sensors
+ * Copyright (C) 2022-2023 Dylan Van Assche
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ssc-sensor-proxy.h"
-#include "proxy-sensor-client.h"
-#include "proxy-version.h"
+#include "libssc.h"
+#include "libssc-client.h"
+#include "libssc-version.h"
 
 int main(int argc, char *argv[])
 {
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	g_autoptr(GError) err = NULL;
 	GFile *file = NULL;
 	g_autofree gchar *device_str = "qrtr://0";
-	struct SSCSensorProxy proxy;
+	struct SSCCli cli;
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
 	const GOptionEntry options[] = {
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 		{ NULL, 0, 0, G_OPTION_ARG_NONE, NULL, NULL, NULL }
 	};
 
-	opt_context = g_option_context_new ("- iio-sensor-proxy for Qualcomm Sensor Core");
+	opt_context = g_option_context_new ("- CLI tool of libssc for Qualcomm Sensor Core sensors");
 	g_option_context_add_main_entries (opt_context, options, NULL);
 	if (!g_option_context_parse (opt_context, &argc, &argv, &err)) {
 		g_warning("Parsing CLI options failed: %s", err->message);
@@ -45,11 +45,11 @@ int main(int argc, char *argv[])
 
 	/* Print version and exit */
 	if (print_version) {
-		printf("ssc-sensor-proxy version %d.%d.%d\n", PROXY_MAJOR_VERSION, PROXY_MINOR_VERSION, PROXY_PATCH_VERSION);
+		printf("libssc version %d.%d.%d\n", LIBSSC_MAJOR_VERSION, LIBSSC_MINOR_VERSION, LIBSSC_PATCH_VERSION);
 		return 0;
 	}
 
-	g_info("ssc-sensor-proxy %d.%d.%d starting", PROXY_MAJOR_VERSION, PROXY_MINOR_VERSION, PROXY_PATCH_VERSION);
+	g_info("libssc %d.%d.%d starting", LIBSSC_MAJOR_VERSION, LIBSSC_MINOR_VERSION, LIBSSC_PATCH_VERSION);
 
 	/* Enable debug logs if requested */
 	if (debug) {
@@ -60,17 +60,17 @@ int main(int argc, char *argv[])
 	}
 
 	/* Read QMI device node */
-	proxy.device_str = g_strdup(device_str);
-	g_debug("QMI device: %s", proxy.device_str);
+	cli.device_str = g_strdup(device_str);
+	g_debug("QMI device: %s", cli.device_str);
 
 	/* Initialize QMI sensor client */
-	file = g_file_new_for_commandline_arg (proxy.device_str);
+	file = g_file_new_for_commandline_arg (cli.device_str);
 	if (!sensor_client_init (file))
 		return EXIT_FAILURE;
 
 	/* Start GLib main loop */
-	proxy.loop = g_main_loop_new(NULL, FALSE);
-	g_main_loop_run(proxy.loop);
+	cli.loop = g_main_loop_new(NULL, FALSE);
+	g_main_loop_run(cli.loop);
 
 	return 0;
 }

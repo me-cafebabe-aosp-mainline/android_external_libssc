@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# ssc-sensor-proxy: a drop-in replacement for iio-sensor-proxy for SSC support
-# Copyright (C) 2022 Dylan Van Assche
+# libssc: Library to expose Qualcomm Sensor Core sensors
+# Copyright (C) 2022-2023 Dylan Van Assche
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -34,7 +34,7 @@ foreach m: msgs
     output: [name + '.pb-c.c', name + '.pb-c.h'],
     command: [protoc_tool, '--proto_path=@CURRENT_SOURCE_DIR@', '--c_out=@OUTDIR@', '@INPUT@'],
     install: true,
-    install_dir: [false, proxy_glib_pkgincludedir]
+    install_dir: [false, libssc_glib_pkgincludedir]
   )
   sources_gen += protobuf_gen[0]
   headers_gen += protobuf_gen[1]
