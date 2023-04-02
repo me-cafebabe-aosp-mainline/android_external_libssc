@@ -27,13 +27,15 @@
 #include <gio/gio.h>
 #include <libqmi-glib.h>
 
-typedef enum {
-	LIBSSC_ERROR_QRTR_DEVICE_URI,
-	LIBSSC_ERROR_QRTR_UNSUPPORTED,
-	LIBSSC_ERROR_QRTR_NODE_NOT_FOUND,
+/*typedef enum {
+	LIBSSC_ERROR_QRTR,
+	LIBSSC_ERROR_PROTOBUF,
+	LIBSSC_ERROR_LOOKUP,
 } SSCError;
 G_DEFINE_QUARK(ssc-error-quark, ssc_error)
-#define LIBSSC_ERROR (ssc_error_quark())
+#define LIBSSC_ERROR (ssc_error_quark())*/
+
+#define QMI_REQUEST_UNKNOWN_VALUE 1
 
 typedef struct {
 	QmiDevice *device;
@@ -43,6 +45,12 @@ typedef struct {
 	guint indication_report_small_id;
 	guint indication_report_large_id;
 } SSCClient;
+
+typedef struct {
+	gchar *data_type;
+	guint64 uid_low;
+	guint64 uid_high;
+} SSCSensor;
 
 void
 ssc_client_init (GObject *self, GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);

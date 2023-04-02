@@ -32,11 +32,14 @@ allocate_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_da
 
 	if (error) {
 		g_task_return_error (task, error);
+		g_clear_object (&task);
 		return;
 	}
 
 	/* QMI client allocated */
 	g_debug ("QMI SSC client allocated");
+	g_task_return_pointer (task, client, NULL); // TODO: destroy
+	g_clear_object (&task);
 }
 
 static void
@@ -50,6 +53,7 @@ device_open_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 	qmi_device_open_finish (device, result, &error);
 	if (error) {
 		g_task_return_error (task, error);
+		g_clear_object (&task);
 		return;
 	}
 
@@ -62,9 +66,7 @@ device_open_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 		10,
 		NULL,
 		(GAsyncReadyCallback)allocate_client_ready,
-		g_object_ref (task));
-
-	g_clear_object (&task);
+		task);
 }
 
 static void
@@ -81,12 +83,15 @@ device_new_ready (GObject *unused, GAsyncResult *res, gpointer user_data)
 	client->device = qmi_device_new_finish (res, &error);
 	if (error) {
 		g_task_return_error (task, error);
+		g_clear_object (&task);
 		return;
 	}
 
 	/* Indications are expected as they report all sensor data values */
 	open_flags |= QMI_DEVICE_OPEN_FLAGS_AUTO;
 	open_flags |= QMI_DEVICE_OPEN_FLAGS_EXPECT_INDICATIONS;
+	
+	g_debug ("QMI device ready");
 
 	/* QMI device created, open device */
 	qmi_device_open (client->device,
@@ -94,9 +99,7 @@ device_new_ready (GObject *unused, GAsyncResult *res, gpointer user_data)
 		15,
 		NULL,
 		(GAsyncReadyCallback)device_open_ready,
-		g_object_ref (task));
-
-	g_clear_object (&task);
+		task);
 }
 
 static void
@@ -113,26 +116,28 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	client->bus = qrtr_bus_new_finish (res, &error);
 	if (error) {
 		g_task_return_error (task, error);
+		g_clear_object (&task);
 		return;
 	}
 
 	node = qrtr_bus_peek_node (client->bus, client->node_id);
 	if (!node) {
-		g_task_return_new_error (task,
+	/*	g_task_return_new_error (task,
 					 LIBSSC_ERROR,
-					 LIBSSC_ERROR_QRTR_NODE_NOT_FOUND,
+					 LIBSSC_ERROR_QRTR,
 					 "node with id %" G_GUINT32_FORMAT "not found in QRTR bus",
-					 client->node_id);
+					 client->node_id);*/
+		g_clear_object (&task);
 		return;
 	}
+
+	g_debug("QRTR node ready");
 
 	/* QRTR node ready, create QMI device */
 	qmi_device_new_from_node (node,
 		NULL,
 		(GAsyncReadyCallback)device_new_ready,
-		g_object_ref (task));
-
-	g_clear_object (&task);
+		task);
 }
 
 static void
@@ -158,23 +163,23 @@ client_init (GTask *task)
 				(GAsyncReadyCallback)bus_new_ready,
 				task);
 
-			g_clear_object (&task);
 			return;
 		}
 
-		g_task_return_new_error (task,
+		/*g_task_return_new_error (task,
 					 LIBSSC_ERROR,
-					 LIBSSC_ERROR_QRTR_DEVICE_URI,
+					 LIBSSC_ERROR_QRTR,
 					 "Device URI is not a QRTR node: %s",
-					 id);
+					 id);*/
 		g_clear_object (&task);
 		return;
 	}
 # else
-	g_task_return_new_error (task,
+	/*g_task_return_new_error (task,
 				 LIBSSC_ERROR,
-				 LIBSSC_ERROR_QRTR_UNSUPPORTED,
-				 "Only QRTR QMI devices are supported. Compile libqmi with QRTR support")
+				 LIBSSC_ERROR_QRTR,
+				 "Only QRTR QMI devices are supported. Compile libqmi with QRTR support")*/
+	g_clear_object (&task);
 	return;
 #endif
 }

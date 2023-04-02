@@ -28,6 +28,7 @@ version_header = configure_file(
 
 headers += files(
   'libssc-client.h',
+  'libssc-sensor-suid.h',
 )
 
 cli_headers = files(
@@ -41,6 +42,7 @@ install_headers(
 
 sources += files(
   'libssc-client.c',
+  'libssc-sensor-suid.c',
 )
 
 cli_sources = files(

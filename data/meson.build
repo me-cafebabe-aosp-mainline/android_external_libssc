@@ -20,8 +20,8 @@
 msgs_inc = include_directories('.')
 
 msgs = [
-  'shared',
-  'suid-sensor',
+  'common',
+  'sensor-suid',
 ]
 sources_gen = []
 headers_gen = []
