@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBSSC_CLI_H_
-#define _LIBSSC_CLI_H_
+#ifndef _LIBSSC_COMMON_H_
+#define _LIBSSC_COMMON_H_
 
-#include <stdio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <fcntl.h>
@@ -27,14 +26,21 @@
 #include <sys/stat.h>
 #include <gio/gio.h>
 #include <libqmi-glib.h>
-#include "libssc-client.h"
-#include "libssc-version.h"
-#include "libssc-sensor-proximity.h"
 
-typedef struct {
-	GMainLoop *loop;
-	gchar *device_str;
-	SSCClient *client;
-} SSCCli;
+#define SSC_MSG_REQUEST_ENABLE_REPORT_ON_CHANGE 514
+#define SSC_MSG_REQUEST_DISABLE_REPORT 		10
+#define SSC_MSG_REQUEST_GET_ATTRIBUTES		1
+#define SSC_MSG_RESPONSE_GET_ATTRIBUTES		128
+#define SSC_ACCURACY_UNRELIABLE			0
+#define SSC_ACCURACY_LOW			1
+#define SSC_ACCURACY_MEDIUM			2
+#define SSC_ACCURACY_HIGH			3
+#define SSC_ATTRIBUTE_NAME			0
+#define SSC_ATTRIBUTE_VENDOR			1
+#define SSC_ATTRIBUTE_AVAILABLE			3
+#define SSC_ATTRIBUTE_STREAM_TYPE		16
 
-#endif /* _LIBSSC_CLI_H_ */
+void
+ssc_common_dump_protobuf (GArray *protobuf);
+
+#endif /* _LIBSSC_COMMON_H_ */

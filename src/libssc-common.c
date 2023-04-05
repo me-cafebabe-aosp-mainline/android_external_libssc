@@ -9,32 +9,27 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _LIBSSC_CLI_H_
-#define _LIBSSC_CLI_H_
+#include "libssc-common.h"
 
-#include <stdio.h>
-#include <glib.h>
-#include <glib/gstdio.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <gio/gio.h>
-#include <libqmi-glib.h>
-#include "libssc-client.h"
-#include "libssc-version.h"
-#include "libssc-sensor-proximity.h"
+void
+ssc_common_dump_protobuf (GArray *protobuf)
+{
+	if (protobuf == NULL) {
+		g_warning ("Invalid ProtoBuf data!");
+		return;
+	}
 
-typedef struct {
-	GMainLoop *loop;
-	gchar *device_str;
-	SSCClient *client;
-} SSCCli;
-
-#endif /* _LIBSSC_CLI_H_ */
+	g_debug ("ProtoBuf data:");
+	for (gsize i = 0; i < protobuf->len; i++) {
+		guint8 value = g_array_index (protobuf, guint8, i);
+		g_printf ("\\x%02x", value);
+	}
+	g_printf ("\n");
+}

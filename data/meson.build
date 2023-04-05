@@ -22,6 +22,7 @@ msgs_inc = include_directories('.')
 msgs = [
   'common',
   'sensor-suid',
+  'sensor-proximity',
 ]
 sources_gen = []
 headers_gen = []

@@ -26,39 +26,65 @@
 #include <sys/stat.h>
 #include <gio/gio.h>
 #include <libqmi-glib.h>
+#include <stdbool.h>
+#include "libssc-common.h"
+#include "ssc-common.pb-c.h"
+#include "ssc-sensor-suid.pb-c.h"
 
-/*typedef enum {
-	LIBSSC_ERROR_QRTR,
-	LIBSSC_ERROR_PROTOBUF,
-	LIBSSC_ERROR_LOOKUP,
-} SSCError;
-G_DEFINE_QUARK(ssc-error-quark, ssc_error)
-#define LIBSSC_ERROR (ssc_error_quark())*/
+G_BEGIN_DECLS
 
-#define QMI_REQUEST_UNKNOWN_VALUE 1
+#define SSC_TYPE_CLIENT (ssc_client_get_type())
+
+G_DECLARE_FINAL_TYPE (SSCClient, ssc_client, SSC, CLIENT, GObject);
+
+//typedef enum {
+//	LIBSSC_ERROR_QRTR,
+//	LIBSSC_ERROR_PROTOBUF,
+//	LIBSSC_ERROR_LOOKUP,
+//} SSCError;
+//G_DEFINE_QUARK(ssc-error-quark, ssc_error)
+//#define LIBSSC_ERROR (ssc_error_quark())
+
+#define SSC_QMI_REQUEST_UNKNOWN_VALUE	1
+#define SSC_PROCESSOR_APSS		1
+#define SSC_SUSPEND_MODE_WAKEUP		0
+#define SSC_SENSOR_TYPE_SUID		"suid"
+#define SSC_SENSOR_UID_SUID_LOW		0xABABABABABABABABUL
+#define SSC_SENSOR_UID_SUID_HIGH	0xABABABABABABABABUL
+#define SSC_MSG_REQUEST_SUID		512
+#define SSC_MSG_RESPONSE_SUID		768
+#define SSC_CLIENT_FILE_PATH		"client-file-path"
 
 typedef struct {
-	QmiDevice *device;
-	QmiClientSsc *qmi_client_ssc;
-	QrtrBus *bus;
-	guint32 node_id;
-	guint indication_report_small_id;
-	guint indication_report_large_id;
-} SSCClient;
-
-typedef struct {
+	uint64_t uid_low;
+	uint64_t uid_high;
+	gchar *name;
+	gchar *vendor;
 	gchar *data_type;
-	guint64 uid_low;
-	guint64 uid_high;
+	guint stream_type;
+	gboolean available;
+
+	guint report_id;
 } SSCSensor;
 
 void
-ssc_client_init (GObject *self, GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+ssc_client_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 
 SSCClient *
-ssc_client_init_finish (GObject *self, GAsyncResult *res, GError **error);
+ssc_client_new_finish (GAsyncResult *res, GError **error);
 
-SSCClient *
-ssc_client_init_sync (GObject *self, GFile *file, GError **error);
+void
+ssc_client_send (SSCClient *self, SSCSensor *sensor, guint32 message_id, GArray *protobuf, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data); 
+
+gboolean
+ssc_client_send_finish (SSCClient *self, GAsyncResult *res, GError **error);
+
+SSCSensor *
+ssc_client_get_sensor_by_data_type (SSCClient *self, gchar *data_type);
+
+SSCSensor *
+ssc_client_get_sensor_by_uid (SSCClient *self, guint64 uid_low, guint64 uid_high);
+
+G_END_DECLS
 
 #endif /* _LIBSSC_CLIENT_H_ */

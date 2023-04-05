@@ -86,3 +86,62 @@ message SscClientResponse {
 	required SscUid uid = 1;
 	repeated SscClientResponseBody response = 2;
 }
+
+/*
+ * Sensor attribute request
+ * @enable_updates: setting this property to true will enable updates for attributes.
+ */
+message SscAttrRequest {
+	optional bool enable_updates = 2;
+}
+
+/*
+ * Sensor attribute value array
+ * @element: element of the attribute value array.
+ */
+message SscAttrValueArray {
+	repeated SscAttrValue element = 1;
+}
+
+/*
+ * Sensor attribute value
+ * Depending on the attribute one of the optional values will be included.
+ * @a: attribute value array data.
+ * @s: string value data.
+ * @f: floating point value data.
+ * @i: integer value data.
+ * @b: boolean value data.
+ */
+message SscAttrValue {
+	optional SscAttrValueArray a = 1;
+	optional string s = 2;
+	optional float f = 3;
+	optional fixed64 i = 4;
+	optional bool b = 5;
+}
+
+/*
+ * Sensor attribute value array
+ * @v: element of the value array
+ */
+message SscAttrArrayValue {
+	repeated SscAttrValue v = 1;
+}
+
+/*
+ * Sensor attribute
+ * @id: Attribute ID.
+ * @value: Attribute value.
+ */
+message SscAttr {
+	required int32 id = 1;
+	required SscAttrArrayValue value_array = 2;
+}
+
+/*
+ * Sensor attribute response
+ * @attr: list of attributes for a sensor.
+ */
+message SscAttrResponse {
+	repeated SscAttr attr = 1;
+}

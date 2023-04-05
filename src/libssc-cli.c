@@ -16,29 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libssc-client.h"
-#include "libssc-sensor-suid.h"
 #include "libssc-cli.h"
-#include "libssc-version.h"
-
-static void
-suid_lookup_ready (SSCClient *self, GAsyncResult *res, gpointer user_data)
-{
-	g_autoptr (GError) err = NULL;
-	SSCSensor *sensor = NULL;
-
-	sensor = ssc_sensor_suid_lookup_finish (self, res, &err);
-
-	if (err) {
-		g_printerr ("Failed to retrieve UID for proximity sensor: %s", err->message);
-		return;
-	}
-
-	if (sensor)
-		g_info ("SSC proximity UID: %016lXI%016lX", sensor->uid_high, sensor->uid_low);
-	else
-		g_info ("SSC proximity not found");
-}
 
 static void
 client_init_ready (GObject *self, GAsyncResult *res, gpointer user_data)
@@ -46,16 +24,17 @@ client_init_ready (GObject *self, GAsyncResult *res, gpointer user_data)
 	g_autoptr (GError) err = NULL;
 	SSCClient *client = NULL;
 
-	client = ssc_client_init_finish (self, res, &err);
+	client = ssc_client_new_finish (res, &err);
 
 	if (err) {
 		g_printerr ("Failed to allocate SSC client: %s", err->message);
 		return;
 	}
 
-	g_info ("SSC client initialized");
-
-	ssc_sensor_suid_lookup (client, SUID_SENSOR_TYPE_PROXIMITY, NULL, (GAsyncReadyCallback)suid_lookup_ready, NULL);
+	if (client)
+		g_info ("SSC client initialized");
+	else
+		g_warning ("No SSC client available");
 }
 
 int main(int argc, char *argv[])
@@ -65,7 +44,6 @@ int main(int argc, char *argv[])
 	GFile *file = NULL;
 	g_autofree gchar *device_str = "qrtr://0";
 	SSCCli cli;
-	GObject *obj;
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
 	const GOptionEntry options[] = {
@@ -103,9 +81,8 @@ int main(int argc, char *argv[])
 	g_debug ("QMI device: %s", cli.device_str);
 
 	/* Initialize QMI sensor client */
-	obj = g_object_new (G_TYPE_OBJECT, NULL);
 	file = g_file_new_for_commandline_arg (cli.device_str);
-	ssc_client_init (obj, file, NULL, (GAsyncReadyCallback)client_init_ready, NULL);
+	ssc_client_new (file, NULL, (GAsyncReadyCallback)client_init_ready, NULL);
 	/*cli.client = ssc_client_init_sync (obj, file, &err);
 	if (!err) {
 		g_printerr ("Failed to allocate SSC client: %s", err->message);
