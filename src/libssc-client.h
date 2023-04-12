@@ -63,6 +63,7 @@ typedef struct {
 	gchar *data_type;
 	guint stream_type;
 	gboolean available;
+	gfloat sample_rate;
 
 	guint report_id;
 } SSCSensor;

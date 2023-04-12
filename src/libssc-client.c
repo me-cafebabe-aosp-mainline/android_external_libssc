@@ -195,6 +195,13 @@ handle_report (SSCClient *self, GArray *protobuf)
 								sensor->available = attr_msg->attr[i]->value_array->v[0]->b;
 							}
 							break;
+						case SSC_ATTRIBUTE_SAMPLE_RATE:
+							/* Only a single sample rate is supported for now. */
+							if (attr_msg->attr[i]->value_array->n_v >= 1 && attr_msg->attr[i]->value_array->v[0]->has_f) {
+								g_debug ("Attr 'sample-rate': %f", attr_msg->attr[i]->value_array->v[0]->f);
+								sensor->sample_rate = attr_msg->attr[i]->value_array->v[0]->f;
+							}
+							break;
 						case SSC_ATTRIBUTE_STREAM_TYPE:
 							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i) {
 								g_debug ("Attr 'stream-type': %ld", attr_msg->attr[i]->value_array->v[0]->i);
@@ -384,10 +391,12 @@ report_received (SSCClient *self, gpointer user_data)
 	g_info ("SSC client allocated with %d sensors:", priv->sensors->len);
 	for (gsize i = 0; i < priv->sensors->len; i++) {
 		SSCSensor *sensor = &g_array_index (priv->sensors, SSCSensor, i);
-		g_info ("%" G_GSIZE_FORMAT ". Sensor '%s' (%016lX %016lX)", i + 1, sensor->data_type, sensor->uid_high, sensor->uid_low);
+		g_info ("%" G_GSIZE_FORMAT ". Sensor %016lX %016lX", i + 1, sensor->uid_high, sensor->uid_low);
 		g_info ("  name: %s", sensor->name);
 		g_info ("  vendor: %s", sensor->vendor);
+		g_info ("  data-type: %s", sensor->data_type);
 		g_info ("  stream-type: %s", sensor->stream_type == SSC_STREAM_TYPE_CONTINUOUS ? "continuous" : "on-change");
+		g_info ("  sample-rate: %f Hz", sensor->sample_rate);
 		g_info ("  available: %s", sensor->available ? "yes" : "no");
 	}
 	g_task_return_boolean (task, TRUE);
