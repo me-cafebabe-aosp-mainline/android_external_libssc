@@ -39,6 +39,8 @@
 #define SSC_ATTRIBUTE_VENDOR			1
 #define SSC_ATTRIBUTE_AVAILABLE			3
 #define SSC_ATTRIBUTE_STREAM_TYPE		16
+#define SSC_STREAM_TYPE_CONTINUOUS		0
+#define SSC_STREAM_TYPE_ON_CHANGE		1
 
 void
 ssc_common_dump_protobuf (GArray *protobuf);

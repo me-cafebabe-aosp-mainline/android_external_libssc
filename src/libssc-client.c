@@ -49,27 +49,13 @@ typedef struct _SSCClient {
 	SSCClientPrivate *priv;
 } SSCClient;
 
-#define SSC_NUMBER_OF_SENSORS 2
+#define SSC_NUMBER_OF_SENSORS 4
 static gchar* data_type[SSC_NUMBER_OF_SENSORS] = {
 	"accel",
-	"proximity",
-};
-/*	"ambient_light",
-	"bring_to_ear",
-	"device_mode",
-	"device_orient",
-	"gravity",
-	"gyro",
-	"hall",
 	"mag",
-	"pedometer",
-	"pressure",
 	"proximity",
-	"rotv",
-	"sig_motion",
-	"tilt",
-	"tilt_to_wake"
-};*/
+	"ambient_light",
+};
 
 static void async_initable_iface_init (GAsyncInitableIface *iface);
 
@@ -89,11 +75,8 @@ ssc_client_get_sensor_by_data_type (SSCClient *self, gchar *data_type)
 
 	for (gsize i = 0; i < priv->sensors->len; i++) {
 		sensor = &g_array_index (priv->sensors, SSCSensor, i);
-		if (sensor == NULL) {
-			g_warning ("Invalid sensor!");
-			continue;
-		}
-		g_debug("comparing");
+		if (sensor == NULL)
+			g_error ("Sensor cannot be NULL");
 		if (g_strcmp0 (sensor->data_type, data_type) == 0)
 			return sensor;
 	}
@@ -111,7 +94,8 @@ ssc_client_get_sensor_by_uid (SSCClient *self, guint64 uid_low, guint64 uid_high
 
 	for (gsize i = 0; i < priv->sensors->len; i++) {
 		sensor = &g_array_index (priv->sensors, SSCSensor, i);
-		g_debug ("Comparing sensor %016lX %016lX with requested %016lX %016lX", sensor->uid_high, sensor->uid_low, uid_high, uid_low);
+		if (sensor == NULL)
+			g_error ("Sensor cannot be NULL");
 		if (sensor->uid_low == uid_low && sensor->uid_high == uid_high)
 			return sensor;
 	}
@@ -158,10 +142,11 @@ handle_report (SSCClient *self, GArray *protobuf)
 					if (suid_msg->n_uid > 0) {
 						SSCSensor sensor;
 						sensor.data_type = g_strdup (suid_msg->data_type);
-						sensor.uid_low = suid_msg->uid[0]->low; //0x305F4C454343415FUL;
-						sensor.uid_high = suid_msg->uid[0]->high; // 0x58583630324D4349UL;
+						sensor.uid_low = suid_msg->uid[0]->low;
+						sensor.uid_high = suid_msg->uid[0]->high;
 						g_array_append_val (priv->sensors, sensor);
-						g_info ("Discovered '%s' sensor (%016lX %016lX)", sensor.data_type, sensor.uid_high, sensor.uid_low);
+
+						g_info ("Populating attributes for '%s' sensor (%016lX %016lX)", sensor.data_type, sensor.uid_high, sensor.uid_low);
 						attr (self, &sensor);
 					} else
 						g_info ("No '%s' sensor available", suid_msg->data_type);
@@ -170,9 +155,11 @@ handle_report (SSCClient *self, GArray *protobuf)
 				} else
 					g_warning ("Cannot unpack SUID message response");
 
-			} else
-				g_warn_if_reached ();
-			return;
+			/* We should never end up here because we only have a single response type for the SUID sensor */
+			} else 
+				g_error ("Unhandled SUID sensor message: %d", body->msg_id);
+
+			continue;
 		}
 		/*
 		 * Sensor attributes are handled by SSCClient, catch these responses and 
@@ -181,37 +168,37 @@ handle_report (SSCClient *self, GArray *protobuf)
 		else if (body->msg_id == SSC_MSG_RESPONSE_GET_ATTRIBUTES) {
 			attr_msg = ssc_attr_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
-			g_debug ("SSC_MSG_RESPONSE_GET_ATTRIBUTES: %016lX %016lX", msg->uid->high, msg->uid->low);
-
 			if (attr_msg != NULL) {
 				SSCSensor *sensor = ssc_client_get_sensor_by_uid (self, msg->uid->low, msg->uid->high);
-				if (!sensor) {
-					g_warning ("No sensor!");
-				}
 
-				g_debug ("Got sensor!");
+				/* We should always have a sensor here because we just discovered it */
+				if (sensor == NULL)
+					g_error ("No sensor (%016lX %016lX) available while populating its attributes!", sensor->uid_high, sensor->uid_low);
 
 				for (gsize i = 0; i < attr_msg->n_attr; i++) {
-					g_debug ("Attr %d", attr_msg->attr[i]->id);
 					switch (attr_msg->attr[i]->id) {
 						case SSC_ATTRIBUTE_NAME:
-							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s) {
+								g_debug ("Attr 'name': %s", attr_msg->attr[i]->value_array->v[0]->s);
 								sensor->name = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
+							}
 							break;
 						case SSC_ATTRIBUTE_VENDOR:
-							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s) {
+								g_debug ("Attr 'vendor': %s", attr_msg->attr[i]->value_array->v[0]->s);
 								sensor->vendor = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
+							}
 							break;
 						case SSC_ATTRIBUTE_AVAILABLE:
-							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_b)
-								sensor->available = &attr_msg->attr[i]->value_array->v[0]->b;
+							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_b) {
+								g_debug ("Attr 'available': %s", attr_msg->attr[i]->value_array->v[0]->b ? "yes": "no");
+								sensor->available = attr_msg->attr[i]->value_array->v[0]->b;
+							}
 							break;
 						case SSC_ATTRIBUTE_STREAM_TYPE:
-							g_debug ("Stream type");
 							if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i) {
-								g_debug ("Has stream type!");
-								g_debug ("%d", attr_msg->attr[i]->value_array->v[0]->i);
-								sensor->stream_type = &attr_msg->attr[i]->value_array->v[0]->i;
+								g_debug ("Attr 'stream-type': %ld", attr_msg->attr[i]->value_array->v[0]->i);
+								sensor->stream_type = attr_msg->attr[i]->value_array->v[0]->i;
 							}
 							break;
 					}
@@ -220,11 +207,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 				ssc_attr_response__free_unpacked (attr_msg, NULL);
 			} else
 				g_warning ("Cannot unpack attribute message response");
-
-			g_debug ("Attributes done");
-
 		}
-
 		/*
 		 * Emit a GSignal on which sensor drivers can subscribe to
 		 * receive sensor specific messages. Drivers can emit the sensor data
@@ -387,41 +370,25 @@ report_received (SSCClient *self, gpointer user_data)
 	priv = ssc_client_get_instance_private (self);
 	
 	/* Still discovering */
-	if (priv->discovery_requests < SSC_NUMBER_OF_SENSORS - 1) {
+	priv->discovery_requests++;
+	if (priv->discovery_requests < SSC_NUMBER_OF_SENSORS) {
 		g_debug ("Discovering '%s' sensor", data_type[priv->discovery_requests]);
 		discover (self, data_type[priv->discovery_requests], task);
-		priv->discovery_requests++;
 		return;
 	}
-
-	/* Sensors discovered but still populating attributes */
-/*	if (priv->attr_requests < priv->sensors->len) {
-		g_debug ("Number of sensors: %d, number of attr req: %d", priv->sensors->len, priv->attr_requests);
-		SSCSensor *sensor = ssc_client_get_sensor_by_data_type (self, data_type[priv->attr_requests]);
-		g_debug ("Got sensor");
-		if (sensor != NULL) {
-			g_debug ("Sensor not NULL");
-			g_debug ("Populating '%s' sensor (%016lX %016lX) attributes", sensor->data_type, sensor->uid_high, sensor->uid_low);
-			attr (self, sensor, task);
-			priv->attr_requests++;
-			return;
-		} else
-			g_warn_if_reached ();
-		g_debug ("done");
-	}*/
 
 	/* Discovery complete, stop handling reports */
 	g_signal_handler_disconnect (self, priv->report_id);
 	priv->report_id = 0;
 
-	g_debug ("SSC client allocated with %d sensors:", priv->sensors->len);
+	g_info ("SSC client allocated with %d sensors:", priv->sensors->len);
 	for (gsize i = 0; i < priv->sensors->len; i++) {
 		SSCSensor *sensor = &g_array_index (priv->sensors, SSCSensor, i);
-		g_debug ("%" G_GSIZE_FORMAT ". Sensor '%s' (%016lX %016lX)", i + 1, sensor->data_type, sensor->uid_high, sensor->uid_low);
-		g_debug ("  name: %s", sensor->name);
-		g_debug ("  vendor: %s", sensor->vendor);
-		g_debug ("  stream type: %d", sensor->stream_type);
-		g_debug ("  available: %s", sensor->available ? "yes" : "no");
+		g_info ("%" G_GSIZE_FORMAT ". Sensor '%s' (%016lX %016lX)", i + 1, sensor->data_type, sensor->uid_high, sensor->uid_low);
+		g_info ("  name: %s", sensor->name);
+		g_info ("  vendor: %s", sensor->vendor);
+		g_info ("  stream-type: %s", sensor->stream_type == SSC_STREAM_TYPE_CONTINUOUS ? "continuous" : "on-change");
+		g_info ("  available: %s", sensor->available ? "yes" : "no");
 	}
 	g_task_return_boolean (task, TRUE);
 	g_clear_object (&task);
@@ -446,11 +413,9 @@ attr_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 static void
 attr (SSCClient *self, SSCSensor *sensor)
 {
-	SSCClientPrivate *priv = NULL;
 	SscAttrRequest msg;
 	GArray *buf = NULL;
 
-	priv = ssc_client_get_instance_private (self);
 	buf = g_array_new (FALSE, FALSE, 1);
 	g_debug ("Retrieving attributes for sensor '%s'", sensor->data_type);
 
