@@ -28,10 +28,14 @@
 #include <libqmi-glib.h>
 #include <stdbool.h>
 #include "libssc-common.h"
+#include "libssc-sensor.h"
 #include "ssc-common.pb-c.h"
 #include "ssc-sensor-suid.pb-c.h"
 
 G_BEGIN_DECLS
+
+typedef struct _SSCClient SSCClient;
+typedef struct _SSCSensor SSCSensor;
 
 #define SSC_TYPE_CLIENT (ssc_client_get_type())
 
@@ -55,19 +59,6 @@ G_DECLARE_FINAL_TYPE (SSCClient, ssc_client, SSC, CLIENT, GObject);
 #define SSC_MSG_RESPONSE_SUID		768
 #define SSC_CLIENT_FILE_PATH		"client-file-path"
 
-typedef struct {
-	uint64_t uid_low;
-	uint64_t uid_high;
-	gchar *name;
-	gchar *vendor;
-	gchar *data_type;
-	guint stream_type;
-	gboolean available;
-	gfloat sample_rate;
-
-	guint report_id;
-} SSCSensor;
-
 void
 ssc_client_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 
@@ -75,16 +66,10 @@ SSCClient *
 ssc_client_new_finish (GAsyncResult *res, GError **error);
 
 void
-ssc_client_send (SSCClient *self, SSCSensor *sensor, guint32 message_id, GArray *protobuf, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data); 
+ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 message_id, GArray *protobuf, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data); 
 
 gboolean
 ssc_client_send_finish (SSCClient *self, GAsyncResult *res, GError **error);
-
-SSCSensor *
-ssc_client_get_sensor_by_data_type (SSCClient *self, gchar *data_type);
-
-SSCSensor *
-ssc_client_get_sensor_by_uid (SSCClient *self, guint64 uid_low, guint64 uid_high);
 
 G_END_DECLS
 

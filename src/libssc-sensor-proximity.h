@@ -20,12 +20,6 @@
 #define _LIBSSC_SENSOR_PROXIMITY_H_
 
 #include <glib.h>
-#include <glib/gstdio.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <gio/gio.h>
-#include <libqmi-glib.h>
 #include <stdbool.h>
 #include "libssc-client.h"
 #include "libssc-common.h"

@@ -105,7 +105,8 @@ proximity_open (SSCClient *self, GTask *task)
 	g_debug ("Sending request to enable proximity sensor");
 
 	ssc_client_send (self,
-			 sensor,
+			 sensor->uid_high,
+			 sensor->uid_low,
 			 SSC_MSG_REQUEST_ENABLE_REPORT_ON_CHANGE,
 			 NULL,
 			 NULL,
@@ -194,7 +195,8 @@ proximity_close (SSCClient *self, GTask *task)
 	g_debug ("Sending request to disable proximity sensor");
 
 	ssc_client_send (self,
-			 sensor,
+			 sensor->uid_high,
+			 sensor->uid_low,
 			 SSC_MSG_REQUEST_DISABLE_REPORT,
 			 NULL,
 			 NULL,

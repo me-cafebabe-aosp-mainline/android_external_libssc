@@ -29,7 +29,8 @@ version_header = configure_file(
 headers += files(
   'libssc-common.h',
   'libssc-client.h',
-  'libssc-sensor-proximity.h',
+  'libssc-sensor.h',
+  #  'libssc-sensor-proximity.h',
 )
 
 cli_headers = files(
@@ -44,7 +45,8 @@ install_headers(
 sources += files(
   'libssc-common.c',
   'libssc-client.c',
-  'libssc-sensor-proximity.c',
+  'libssc-sensor.c',
+  #  'libssc-sensor-proximity.c',
 )
 
 cli_sources = files(
