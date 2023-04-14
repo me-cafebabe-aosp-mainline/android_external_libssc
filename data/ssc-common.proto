@@ -145,3 +145,11 @@ message SscAttr {
 message SscAttrResponse {
 	repeated SscAttr attr = 1;
 }
+
+/*
+ * Sensor enable config request
+ * @sample_rate: requested sample rate in Hz.
+ */
+message SscEnableConfigRequest {
+	required float sample_rate = 1;
+}

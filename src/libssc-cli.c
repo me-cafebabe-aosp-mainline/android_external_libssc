@@ -19,10 +19,18 @@
 #include "libssc-cli.h"
 
 static void
+sensor_ready (SSCSensor *self, GAsyncResult *res, gpointer user_data)
+{
+
+}
+
+static void
 client_init_ready (GObject *self, GAsyncResult *res, gpointer user_data)
 {
 	g_autoptr (GError) err = NULL;
 	SSCClient *client = NULL;
+	SSCSensor *sensor = NULL;
+	gchar *data_type = NULL;
 
 	client = ssc_client_new_finish (res, &err);
 
@@ -35,6 +43,13 @@ client_init_ready (GObject *self, GAsyncResult *res, gpointer user_data)
 		g_info ("SSC client initialized");
 	else
 		g_warning ("No SSC client available");
+
+	sensor = ssc_client_get_sensor_by_data_type (client, "proximity");
+
+	g_object_get (sensor,
+		      SSC_SENSOR_DATA_TYPE, &data_type,
+		      NULL);
+	g_debug ("Sensor '%s' found", data_type);
 }
 
 int main(int argc, char *argv[])

@@ -66,6 +66,30 @@ G_DEFINE_TYPE_WITH_CODE (SSCClient, ssc_client, G_TYPE_OBJECT,
 
 /*****************************************************************************/
 
+SSCSensor *
+ssc_client_get_sensor_by_data_type (SSCClient *self, gchar *data_type)
+{
+	SSCClientPrivate *priv_client = NULL;
+	SSCSensor *sensor = NULL;
+	gchar *sensor_data_type = NULL;
+
+	priv_client = ssc_client_get_instance_private (self);
+
+	for (gsize i = 0; i < priv_client->sensors->len; i++) {
+		sensor = &g_array_index (priv_client->sensors, SSCSensor, i);
+		g_object_get (sensor,
+			      SSC_SENSOR_DATA_TYPE, &sensor_data_type,
+			      NULL);
+
+		if (g_strcmp0 (sensor_data_type, data_type) == 0)
+			return sensor;
+	}
+
+	return NULL;
+}
+
+/*****************************************************************************/
+
 static void
 sensor_ready (SSCSensor *self, GAsyncResult *result, gpointer user_data)
 {

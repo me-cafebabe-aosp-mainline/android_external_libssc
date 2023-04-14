@@ -22,6 +22,7 @@
 #include <glib.h>
 #include "libssc-client.h"
 #include "libssc-common.h"
+#include "ssc-common.pb-c.h"
 
 G_BEGIN_DECLS
 
@@ -44,17 +45,18 @@ G_DECLARE_DERIVABLE_TYPE (SSCSensor, ssc_sensor, SSC, SENSOR, GObject);
 
 void		 ssc_sensor_new (guint64 uid_high, guint64 uid_low, gchar *data_type, SSCClient *client, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 SSCSensor 	*ssc_sensor_new_finish (GAsyncResult *result, GError **error);
-void		 ssc_sensor_open (SSCSensor *self);
-void		 ssc_sensor_close (SSCSensor *self);
+void		 ssc_sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+gboolean	 ssc_sensor_open_finish (SSCSensor *self, GAsyncResult *result, GError **error);
+void		 ssc_sensor_close (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+gboolean	 ssc_sensor_close_finish (SSCSensor *self, GAsyncResult *result, GError **error);
 
 struct _SSCSensorClass {
 	GObjectClass parent_class;
 
-	void (*open) (SSCSensor *self);
-	gboolean (*open_finish) (SSCSensor *self);
-	void (*close) (SSCSensor *self);
-	gboolean (*close_finish) (SSCSensor *self);
-	void (*handle_report) (SSCSensor *self, guint32 msg_id, GArray *protobuf);
+	void (*open) (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+	gboolean (*open_finish) (SSCSensor *self, GAsyncResult *result, GError **error);
+	void (*close) (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+	gboolean (*close_finish) (SSCSensor *self, GAsyncResult *result, GError **error);
 };
 
 G_END_DECLS

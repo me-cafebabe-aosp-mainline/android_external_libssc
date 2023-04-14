@@ -71,6 +71,9 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 gboolean
 ssc_client_send_finish (SSCClient *self, GAsyncResult *res, GError **error);
 
+SSCSensor *
+ssc_client_get_sensor_by_data_type (SSCClient *self, gchar *data_type);
+
 G_END_DECLS
 
 #endif /* _LIBSSC_CLIENT_H_ */
