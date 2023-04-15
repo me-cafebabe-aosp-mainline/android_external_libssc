@@ -29,6 +29,7 @@
 #include <libqmi-glib.h>
 #include "libssc-client.h"
 #include "libssc-version.h"
+#include "libssc-sensor.h"
 #include "libssc-sensor-proximity.h"
 
 typedef struct {

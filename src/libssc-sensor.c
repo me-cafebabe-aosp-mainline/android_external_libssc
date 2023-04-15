@@ -19,15 +19,6 @@
 #include "libssc-sensor.h"
 
 enum {
-	SIGNAL_MEASUREMENT_ACCELEROMETER,
-	SIGNAL_MEASUREMENT_MAGNETOMETER,
-	SIGNAL_MEASUREMENT_PROXIMITY,
-	SIGNAL_MEASUREMENT_LIGHT,
-	N_SIGNALS
-};
-static guint signals[N_SIGNALS];
-
-enum {
 	PROP_NAME = 1,
 	PROP_UID_LOW = 2,
 	PROP_UID_HIGH = 3,
@@ -37,6 +28,7 @@ enum {
 	PROP_AVAILABLE = 7,
 	PROP_SAMPLE_RATE = 8,
 	PROP_CLIENT = 9,
+	PROP_FILE = 10,
 	N_PROPERTIES
 };
 static GParamSpec *properties[N_PROPERTIES];
@@ -61,6 +53,7 @@ typedef struct _SSCSensorPrivate {
 	SSCClient *client;
 	guint report_id;
 	gboolean attr_populated;
+	GFile *file;
 } SSCSensorPrivate;
 
 G_DEFINE_TYPE_WITH_CODE (SSCSensor, ssc_sensor, G_TYPE_OBJECT,
@@ -68,7 +61,7 @@ G_DEFINE_TYPE_WITH_CODE (SSCSensor, ssc_sensor, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_INITABLE, async_initable_iface_init))
 
 static void
-report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data);
+attribute (SSCSensor *self, GTask *task);
 
 /*****************************************************************************/
 
@@ -84,7 +77,7 @@ sensor_close_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 	GTask *task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
 
-	if (ssc_client_send_finish (self, result, &error)) {
+	if (!ssc_client_send_finish (self, result, &error)) {
 		g_task_return_error (task, error);
 		g_clear_object (&task);
 		g_warning ("Sensor disable request failed: %s", error->message);
@@ -144,7 +137,7 @@ sensor_open_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 	GTask *task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
 
-	if (ssc_client_send_finish (self, result, &error)) {
+	if (!ssc_client_send_finish (self, result, &error)) {
 		g_task_return_error (task, error);
 		g_clear_object (&task);
 		g_warning ("Sensor enable request failed: %s", error->message);
@@ -199,12 +192,6 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 		ssc_enable_config_request__pack (&msg, (unsigned char*) buf->data);
 	}
 
-	/* Start listening for report signals */
-	priv->report_id = g_signal_connect (priv->client,
-			"report",
-			G_CALLBACK (report_received),
-			ctx);
-
 	ssc_client_send (priv->client,
 			 priv->uid_high,
 			 priv->uid_low,
@@ -235,81 +222,86 @@ ssc_sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback
 static void
 report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
 {
-	SscAttrResponse *msg = NULL;
+	SscSuidResponse *suid_msg = NULL;
+	SscAttrResponse *attr_msg = NULL;
 	SSCSensorPrivate *priv = NULL;
 	ReportReceivedContext *ctx = user_data;
 	gboolean attributes_populated = FALSE;
 
 	priv = ssc_sensor_get_instance_private (ctx->sensor);
 
-	/* Only handle reports with matching UID */
-	if (priv->uid_high != uid_high || priv->uid_low != uid_low)
-		return;
+	/* Discover response */
+	if (uid_high == SSC_SENSOR_UID_SUID_HIGH && uid_low == SSC_SENSOR_UID_SUID_LOW && msg_id == SSC_MSG_RESPONSE_SUID) {
+		suid_msg = ssc_suid_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
+		/* Only default sensor for data type is reported */
+		if (suid_msg != NULL && suid_msg->n_uid > 0 && g_strcmp0 (suid_msg->data_type, priv->data_type) == 0) {
+			priv->uid_high = suid_msg->uid[0]->high;
+			priv->uid_low = suid_msg->uid[0]->low;
+
+			g_debug ("Discovered '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
+			ssc_suid_response__free_unpacked (suid_msg, NULL);
+
+			/* Sensor discovered, populate attributes */
+			attribute (ctx->sensor, ctx->task);
+			return;
+		/* No sensor available for specified data type, complete task */
+		} else {
+			g_debug ("No '%s' sensor available", priv->data_type);
+			ssc_suid_response__free_unpacked (suid_msg, NULL);
+			
+			g_task_return_boolean (ctx->task, FALSE);
+			g_clear_object (&ctx->task);
+			return;
+		}
 	/* Attributes populating response */
-	if (msg_id == SSC_MSG_RESPONSE_GET_ATTRIBUTES) {
-		msg = ssc_attr_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+	} else if (uid_high == priv->uid_high && uid_low == priv->uid_low && msg_id == SSC_MSG_RESPONSE_GET_ATTRIBUTES) {
+		attr_msg = ssc_attr_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
-		if (msg != NULL) {
-			for (gsize i = 0; i < msg->n_attr; i++) {
-				switch (msg->attr[i]->id) {
+		if (attr_msg != NULL) {
+			for (gsize i = 0; i < attr_msg->n_attr; i++) {
+				switch (attr_msg->attr[i]->id) {
 					case SSC_ATTRIBUTE_NAME:
-						if (msg->attr[i]->value_array->n_v == 1 && msg->attr[i]->value_array->v[0]->s)
-							priv->name = g_strdup (msg->attr[i]->value_array->v[0]->s);
+						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+							priv->name = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
 						break;
 					case SSC_ATTRIBUTE_VENDOR:
-						if (msg->attr[i]->value_array->n_v == 1 && msg->attr[i]->value_array->v[0]->s)
-							priv->vendor = g_strdup (msg->attr[i]->value_array->v[0]->s);
+						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+							priv->vendor = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
 						break;
 					case SSC_ATTRIBUTE_AVAILABLE:
-						if (msg->attr[i]->value_array->n_v == 1 && msg->attr[i]->value_array->v[0]->has_b)
-							priv->available = msg->attr[i]->value_array->v[0]->b;
+						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_b)
+							priv->available = attr_msg->attr[i]->value_array->v[0]->b;
 						break;
 					case SSC_ATTRIBUTE_SAMPLE_RATE:
 						/* Only a single sample rate is supported for now. */
-						if (msg->attr[i]->value_array->n_v >= 1 && msg->attr[i]->value_array->v[0]->has_f)
-							priv->sample_rate = msg->attr[i]->value_array->v[0]->f;
+						if (attr_msg->attr[i]->value_array->n_v >= 1 && attr_msg->attr[i]->value_array->v[0]->has_f)
+							priv->sample_rate = attr_msg->attr[i]->value_array->v[0]->f;
 						break;
 					case SSC_ATTRIBUTE_STREAM_TYPE:
-						if (msg->attr[i]->value_array->n_v == 1 && msg->attr[i]->value_array->v[0]->has_i)
-							priv->stream_type = msg->attr[i]->value_array->v[0]->i;
+						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i)
+							priv->stream_type = attr_msg->attr[i]->value_array->v[0]->i;
 						break;
 				}
 			}
 
-			ssc_attr_response__free_unpacked (msg, NULL);
+			ssc_attr_response__free_unpacked (attr_msg, NULL);
 			attributes_populated = TRUE;
-		} else
-			g_warning ("Cannot unpack attribute message response");
 
-		/* Sensor initialized, complete task. Only perform this step during initialization not when handling measurement reports */
-		if (ctx->task != NULL) {
-			if (attributes_populated) {
-				g_info ("Initialized '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
-				g_info ("  name: %s", priv->name);
-				g_info ("  vendor: %s", priv->vendor);
-				g_info ("  data-type: %s", priv->data_type);
-				g_info ("  stream-type: %s", priv->stream_type == SSC_STREAM_TYPE_CONTINUOUS ? "continuous" : "on-change");
-				g_info ("  sample-rate: %f Hz", priv->sample_rate);
-				g_info ("  available: %s", priv->available ? "yes" : "no");
-			} else
-				g_info ("No '%s' sensor available", priv->data_type);
-
-			/* Task is done, stop listening */
-			g_signal_handler_disconnect (priv->client, priv->report_id);
-			priv->report_id = 0;
-
-			g_task_return_boolean (ctx->task, attributes_populated);
-			g_clear_object (&ctx->task);
-
-			g_slice_free (ReportReceivedContext, ctx);
+			g_debug ("Attributes populated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
+			g_debug ("  name: %s", priv->name);
+			g_debug ("  vendor: %s", priv->vendor);
+			g_debug ("  data-type: %s", priv->data_type);
+			g_debug ("  stream-type: %s", priv->stream_type == SSC_STREAM_TYPE_CONTINUOUS ? "continuous" : "on-change");
+			g_debug ("  sample-rate: %f Hz", priv->sample_rate);
+			g_debug ("  available: %s", priv->available ? "yes" : "no");
 		}
 
+		/* Sensor initialized, complete task. */
+		g_task_return_boolean (ctx->task, attributes_populated);
+		g_clear_object (&ctx->task);
 		return;
 	}
-	
-	g_warning ("Unsupported message %" G_GUINT32_FORMAT " for '%s' sensor (%016lX %016lX)", msg_id, priv->data_type, priv->uid_high, priv->uid_low);
-	g_assert_not_reached ();
 }
 
 /*****************************************************************************/
@@ -328,22 +320,13 @@ attribute_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 }
 
 static void
-initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+attribute (SSCSensor *self, GTask *task)
 {
-	GTask *task = NULL;
-	SSCSensor *self = NULL;
-	SSCSensorPrivate *priv = NULL;
-	SscAttrRequest msg;
 	GArray *buf = NULL;
-	ReportReceivedContext *ctx = NULL;
+	SscAttrRequest msg;
+	SSCSensorPrivate *priv = NULL;
 
-	self = SSC_SENSOR (initable);
 	priv = ssc_sensor_get_instance_private (self);
-	task = g_task_new (self, cancellable, callback, user_data);
-
-	ctx = g_slice_new (ReportReceivedContext);
-	ctx->task = task;
-	ctx->sensor = self;
 
 	/* Build attributes request */
 	ssc_attr_request__init (&msg);
@@ -352,12 +335,6 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 	buf = g_array_new (FALSE, FALSE, 1);
 	g_array_set_size (buf, ssc_attr_request__get_packed_size (&msg));
 	ssc_attr_request__pack (&msg, (unsigned char*) buf->data);
-
-	/* Start listening for report signals */
-	priv->report_id = g_signal_connect (priv->client,
-			"report",
-			G_CALLBACK (report_received),
-			ctx);
 
 	/* Send attribute request */
 	ssc_client_send (priv->client,
@@ -368,6 +345,111 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 			 NULL,
 			 (GAsyncReadyCallback)attribute_ready,
 			 NULL);
+}
+
+/*****************************************************************************/
+
+static void
+discovery_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr(GError) error = NULL;
+	GTask *task = G_TASK (user_data);
+
+	if (!ssc_client_send_finish (self, result, &error)) {
+		g_task_return_error (task, error);
+		g_clear_object (&task);
+		return;
+	}
+
+	/* Task completion will happen when sensor discovery is complete */
+	g_debug ("Sensor discovery request sent");
+}
+
+static void
+discover (SSCSensor *self, GTask *task)
+{
+	SSCSensorPrivate *priv = NULL;
+	SscSuidRequest msg;
+	GArray *buf = NULL;
+
+	priv = ssc_sensor_get_instance_private (self);
+
+	g_debug ("Discovering sensor UID for data type '%s'", priv->data_type);
+
+	/*
+	 * Request for sensors for given datatype, if multiple sensors support a datatype,
+	 * only return the default sensor. Do not monitor for hotplugged sensors.
+	 */
+	ssc_suid_request__init (&msg);
+	msg.data_type = priv->data_type;
+	msg.has_enable_updates = true;
+	msg.enable_updates = false;
+	msg.has_only_default_values = true;
+	msg.only_default_values = true;
+
+	buf = g_array_new (FALSE, FALSE, 1);
+	g_array_set_size (buf, ssc_suid_request__get_packed_size (&msg));
+	ssc_suid_request__pack (&msg, (unsigned char*) buf->data);
+
+	ssc_client_send (priv->client,
+			 SSC_SENSOR_UID_SUID_HIGH,
+			 SSC_SENSOR_UID_SUID_LOW,
+			 SSC_MSG_REQUEST_SUID,
+			 buf,
+			 NULL,
+			 (GAsyncReadyCallback)discovery_ready,
+			 NULL); 
+}
+
+/*****************************************************************************/
+
+static void
+client_ready (SSCClient *client, GAsyncResult *result, gpointer user_data)
+{
+	GTask *task = G_TASK (user_data);
+	ReportReceivedContext *ctx = NULL;
+	SSCSensorPrivate *priv = NULL;
+	g_autoptr (GError) error = NULL;
+	SSCSensor *self = NULL;
+
+	self = g_task_get_source_object (task);
+	priv = ssc_sensor_get_instance_private (self);
+
+	/* Client allocation */
+	priv->client = ssc_client_new_finish (result, &error);
+	if (!priv->client) {
+		g_task_return_boolean (task, FALSE);
+		g_object_unref (task);
+		return;
+	}
+
+	ctx = g_slice_new (ReportReceivedContext);
+	ctx->task = task;
+	ctx->sensor = self;
+
+	/* Start listening for report signals */
+	priv->report_id = g_signal_connect (priv->client,
+			"report",
+			G_CALLBACK (report_received),
+			ctx);
+
+	discover (self, task);
+}
+
+static void
+initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+{
+	GTask *task = NULL;
+	SSCSensor *self = NULL;
+	g_autoptr (GFile) file = NULL;
+
+	self = SSC_SENSOR (initable);
+	task = g_task_new (self, cancellable, callback, user_data);
+
+	g_object_get (self,
+		      SSC_CLIENT_FILE_PATH, &file,
+		      NULL);
+	ssc_client_new (file, NULL, (GAsyncReadyCallback)client_ready, task);
 }
 
 static gboolean
@@ -402,6 +484,9 @@ sensor_set_property (GObject *object, guint prop_id, const GValue *value, GParam
 			break;
 		case PROP_CLIENT:
 			priv->client = g_value_dup_object (value);
+			break;
+		case PROP_FILE:
+			priv->file = g_value_dup_object (value);
 			break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -442,6 +527,9 @@ sensor_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *
 			break;
 		case PROP_CLIENT:
 			g_value_set_object (value, priv->client);
+			break;
+		case PROP_FILE:
+			g_value_set_object (value, priv->file);
 			break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -538,6 +626,14 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     SSC_TYPE_CLIENT,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 	g_object_class_install_property (object_class, PROP_CLIENT, properties[PROP_CLIENT]);
+
+	properties[PROP_FILE] =
+		g_param_spec_object (SSC_CLIENT_FILE_PATH,
+				     "Device file",
+				     "File to the underlying device",
+				     G_TYPE_FILE,
+				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+	g_object_class_install_property (object_class, PROP_FILE, properties[PROP_FILE]);
 }
 
 static void
@@ -562,17 +658,16 @@ ssc_sensor_new_finish (GAsyncResult *result, GError **error)
 }
 
 void
-ssc_sensor_new (guint64 uid_high, guint64 uid_low, gchar *data_type, SSCClient *client, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+ssc_sensor_new (GFile *file, gchar *data_type, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
+	g_debug ("DATA TYPE: %s", data_type);
 	return g_async_initable_new_async (
 			SSC_TYPE_SENSOR,
 			G_PRIORITY_DEFAULT,
 			cancellable,
 			callback,
 			user_data,
-			SSC_SENSOR_UID_HIGH, uid_high,
-			SSC_SENSOR_UID_LOW, uid_low,
 			SSC_SENSOR_DATA_TYPE, data_type,
-			SSC_SENSOR_CLIENT, client,
+			SSC_CLIENT_FILE_PATH, file,
 			NULL);
 }

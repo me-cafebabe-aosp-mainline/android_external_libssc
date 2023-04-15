@@ -19,37 +19,68 @@
 #include "libssc-cli.h"
 
 static void
-sensor_ready (SSCSensor *self, GAsyncResult *res, gpointer user_data)
+proximity_close_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointer user_data)
 {
+	g_autoptr (GError) error = NULL;
 
-}
-
-static void
-client_init_ready (GObject *self, GAsyncResult *res, gpointer user_data)
-{
-	g_autoptr (GError) err = NULL;
-	SSCClient *client = NULL;
-	SSCSensor *sensor = NULL;
-	gchar *data_type = NULL;
-
-	client = ssc_client_new_finish (res, &err);
-
-	if (err) {
-		g_printerr ("Failed to allocate SSC client: %s", err->message);
+	if (!ssc_sensor_proximity_close_finish (sensor, result, &error)) {
+		g_warning ("Failed to close proximity sensor");
 		return;
 	}
 
-	if (client)
-		g_info ("SSC client initialized");
-	else
-		g_warning ("No SSC client available");
+	g_debug ("Proximity sensor disabled");
+}
 
-	sensor = ssc_client_get_sensor_by_data_type (client, "proximity");
+static gboolean
+proximity_close_cb (SSCSensorProximity *self)
+{
+	ssc_sensor_proximity_close (self, NULL, (GAsyncReadyCallback)proximity_close_ready, NULL);
 
-	g_object_get (sensor,
-		      SSC_SENSOR_DATA_TYPE, &data_type,
-		      NULL);
-	g_debug ("Sensor '%s' found", data_type);
+	return G_SOURCE_REMOVE;
+}
+
+static void proximity_measurement (SSCSensorProximity *sensor, gboolean near, gpointer user_data)
+{
+	g_debug ("Proximity measurement: %s", near ? "NEAR" : "FAR");
+}
+
+
+static void
+proximity_open_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+
+	if (!ssc_sensor_proximity_open_finish (sensor, result, &error)) {
+		g_warning ("Failed to open proximity sensor");
+		return;
+	}
+
+	g_debug ("Proximity sensor enabled");
+	g_timeout_add_seconds (2, (GSourceFunc)proximity_close_cb, sensor);
+}
+
+static void
+proximity_ready (GFile *self, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+	SSCSensorProximity *sensor = NULL;
+
+	sensor = ssc_sensor_proximity_new_finish (result, &error);
+
+	if (sensor)
+		g_debug ("Proximity Sensor allocated");
+	else {
+		g_debug ("Proximity sensor is NULL");
+		return;
+	}
+
+	g_signal_connect (SSC_SENSOR_PROXIMITY (sensor),
+			  "measurement-proximity",
+			  G_CALLBACK (proximity_measurement),
+			  NULL);
+
+	g_debug ("Proximity sensor enabling");
+	ssc_sensor_proximity_open (sensor, NULL, (GAsyncReadyCallback)proximity_open_ready, NULL);
 }
 
 int main(int argc, char *argv[])
@@ -95,9 +126,7 @@ int main(int argc, char *argv[])
 	cli.device_str = g_strdup(device_str);
 	g_debug ("QMI device: %s", cli.device_str);
 
-	/* Initialize QMI sensor client */
-	file = g_file_new_for_commandline_arg (cli.device_str);
-	ssc_client_new (file, NULL, (GAsyncReadyCallback)client_init_ready, NULL);
+	//ssc_client_new (file, NULL, (GAsyncReadyCallback)client_init_ready, NULL);
 	/*cli.client = ssc_client_init_sync (obj, file, &err);
 	if (!err) {
 		g_printerr ("Failed to allocate SSC client: %s", err->message);
@@ -111,6 +140,11 @@ int main(int argc, char *argv[])
 
 	/* Start GLib main loop */
 	cli.loop = g_main_loop_new(NULL, FALSE);
+
+	/* Initialize QMI sensor client */
+	file = g_file_new_for_commandline_arg (cli.device_str);
+	ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
+
 	g_main_loop_run(cli.loop);
 
 	return 0;

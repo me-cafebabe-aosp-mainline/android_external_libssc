@@ -30,7 +30,6 @@
 #include "libssc-common.h"
 #include "libssc-sensor.h"
 #include "ssc-common.pb-c.h"
-#include "ssc-sensor-suid.pb-c.h"
 
 G_BEGIN_DECLS
 

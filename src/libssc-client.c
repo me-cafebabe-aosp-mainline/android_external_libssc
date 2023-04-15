@@ -42,21 +42,12 @@ typedef struct _SSCClientPrivate {
 	guint sensor_initialized_id;
 	guint discovery_requests;
 	guint sensor_init_requests;
-	GArray *sensors;
 } SSCClientPrivate;
 
 typedef struct _SSCClient {
 	GObject parent;
 	SSCClientPrivate *priv;
 } SSCClient;
-
-#define SSC_NUMBER_OF_SENSORS 4
-static gchar* data_type[SSC_NUMBER_OF_SENSORS] = {
-	"accel",
-	"proximity",
-	"mag",
-	"ambient_light",
-};
 
 static void async_initable_iface_init (GAsyncInitableIface *iface);
 
@@ -66,51 +57,10 @@ G_DEFINE_TYPE_WITH_CODE (SSCClient, ssc_client, G_TYPE_OBJECT,
 
 /*****************************************************************************/
 
-SSCSensor *
-ssc_client_get_sensor_by_data_type (SSCClient *self, gchar *data_type)
-{
-	SSCClientPrivate *priv_client = NULL;
-	SSCSensor *sensor = NULL;
-	gchar *sensor_data_type = NULL;
-
-	priv_client = ssc_client_get_instance_private (self);
-
-	for (gsize i = 0; i < priv_client->sensors->len; i++) {
-		sensor = &g_array_index (priv_client->sensors, SSCSensor, i);
-		g_object_get (sensor,
-			      SSC_SENSOR_DATA_TYPE, &sensor_data_type,
-			      NULL);
-
-		if (g_strcmp0 (sensor_data_type, data_type) == 0)
-			return sensor;
-	}
-
-	return NULL;
-}
-
-/*****************************************************************************/
-
-static void
-sensor_ready (SSCSensor *self, GAsyncResult *result, gpointer user_data)
-{
-	SSCClient *client = NULL;
-	g_autoptr (GError) error = NULL;
-	SSCSensor *sensor = NULL;
-
-	sensor = ssc_sensor_new_finish (result, &error);
-
-	g_object_get (sensor,
-	      	      SSC_SENSOR_CLIENT, &client,
-	      	      NULL);
-	
-	g_signal_emit (client, signals[SIGNAL_SENSOR_INITIALIZED], 0, sensor);
-}
-
 static void
 handle_report (SSCClient *self, GArray *protobuf)
 {
 	SscClientResponse *msg;
-	SscSuidResponse *suid_msg = NULL;
 
 	ssc_common_dump_protobuf (protobuf);
 	msg = ssc_client_response__unpack (NULL, protobuf->len, (const uint8_t *) protobuf->data);
@@ -123,40 +73,6 @@ handle_report (SSCClient *self, GArray *protobuf)
 
 		g_debug ("Got message %" G_GUINT32_FORMAT " for sensor %016lX %016lX", body->msg_id, msg->uid->high, msg->uid->low);
 
-		/*
-		 * SUID sensor is handled by SSCClient because it is not a regular sensor.
-		 * Only the first discovered sensor is reported which is fine because
-		 * we ask for the default sensor for the data type.
-		 */
-		if (msg->uid->low == SSC_SENSOR_UID_SUID_LOW && msg->uid->high == SSC_SENSOR_UID_SUID_HIGH) {
-			if (body->msg_id == SSC_MSG_RESPONSE_SUID) {
-				suid_msg = ssc_suid_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
-
-				if (suid_msg != NULL) {
-					if (suid_msg->n_uid > 0) {
-						ssc_sensor_new (suid_msg->uid[0]->high,
-								suid_msg->uid[0]->low,
-								suid_msg->data_type,
-								self,
-								NULL,
-								(GAsyncReadyCallback)sensor_ready,
-								NULL);
-						return;
-					} else {
-						g_info ("No '%s' sensor available", suid_msg->data_type);
-						g_signal_emit (self, signals[SIGNAL_SENSOR_INITIALIZED], 0, NULL);
-					}
-
-					ssc_suid_response__free_unpacked (suid_msg, NULL);
-				} else
-					g_warning ("Cannot unpack SUID message response");
-
-			/* We should never end up here because we only have a single response type for the SUID sensor */
-			} else 
-				g_error ("Unhandled SUID sensor message: %d", body->msg_id);
-
-			continue;
-		}
 		/*
 		 * Emit a GSignal on which sensor drivers can subscribe to
 		 * receive sensor specific messages. Drivers can emit the sensor data
@@ -308,84 +224,6 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 /*****************************************************************************/
 
 static void
-discover (SSCClient *self, gchar *data_type, GTask *task);
-
-static void
-sensor_initialized (SSCClient *self, SSCSensor *sensor, gpointer user_data)
-{
-	GTask *task = G_TASK (user_data);
-	SSCClientPrivate *priv = NULL;
-
-	priv = ssc_client_get_instance_private (self);
-	if (sensor)
-		g_array_append_val (priv->sensors, sensor);
-	
-	/* Still discovering */
-	priv->discovery_requests++;
-	if (priv->discovery_requests < SSC_NUMBER_OF_SENSORS) {
-		discover (self, data_type[priv->discovery_requests], task);
-		return;
-	}
-
-	/* Discovery complete, stop handling reports */
-	g_signal_handler_disconnect (self, priv->sensor_initialized_id);
-	priv->sensor_initialized_id = 0;
-
-	g_info ("SSC client allocated with %d sensors", priv->sensors->len);
-	g_task_return_boolean (task, TRUE);
-	g_clear_object (&task);
-}
-
-static void
-discovery_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr(GError) error = NULL;
-	GTask *task = G_TASK (user_data);
-
-	if (!ssc_client_send_finish (self, result, &error)) {
-		g_task_return_error (task, error);
-		g_clear_object (&task);
-		return;
-	}
-
-	/* Task completion will happen when sensor discovery is complete */
-	g_debug ("Sensor discovery request sent");
-}
-
-static void
-discover (SSCClient *self, gchar *data_type, GTask *task)
-{
-	SscSuidRequest msg;
-	GArray *buf = NULL;
-
-	g_debug ("Discovering sensor UID for data type '%s'", data_type);
-
-	/*
-	 * Request for sensors for given datatype, if multiple sensors support a datatype,
-	 * only return the default sensor. Do not monitor for hotplugged sensors.
-	 */
-	ssc_suid_request__init (&msg);
-	msg.data_type = data_type;
-	msg.has_enable_updates = true;
-	msg.enable_updates = false;
-	msg.has_only_default_values = true;
-	msg.only_default_values = true;
-
-	buf = g_array_new (FALSE, FALSE, 1);
-	g_array_set_size (buf, ssc_suid_request__get_packed_size (&msg));
-	ssc_suid_request__pack (&msg, (unsigned char*) buf->data);
-
-	ssc_client_send (self,
-			 SSC_SENSOR_UID_SUID_HIGH,
-			 SSC_SENSOR_UID_SUID_LOW,
-			 SSC_MSG_REQUEST_SUID,
-			 buf,
-			 NULL,
-			 (GAsyncReadyCallback)discovery_ready,
-			 NULL); 
-}
-
-static void
 allocate_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
@@ -416,16 +254,8 @@ allocate_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_da
 			G_CALLBACK (report_large_received),
 			client);
 
-
-	/* Start listening for report signals */
-	priv->sensor_initialized_id = g_signal_connect (client,
-		"sensor-initialized",
-		G_CALLBACK (sensor_initialized),
-		task);
-
-	/* Send discover requests for all sensors */
-	priv->discovery_requests = 0;
-	discover (client, data_type[priv->discovery_requests], task);
+	g_task_return_boolean (task, TRUE);
+	g_clear_object (&task);
 }
 
 static void
@@ -555,7 +385,6 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 
 		self = SSC_CLIENT (initable);
 		priv = ssc_client_get_instance_private (self);
-		priv->sensors = g_array_sized_new (FALSE, FALSE, sizeof (SSCSensor), SSC_NUMBER_OF_SENSORS);
 
 		/* Retrieve QRTR node path */
 		g_object_get (self,
@@ -644,12 +473,29 @@ get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
 	}
 }
 
+static GObject*
+ssc_client_constructor (GType type, guint n_construct_params, GObjectConstructParam *construct_params)
+{
+	static GObject *self = NULL;
+
+	/* Enforce singleton */
+	if (self == NULL)
+	{
+		self = G_OBJECT_CLASS (ssc_client_parent_class)->constructor (type, n_construct_params, construct_params);
+		g_object_add_weak_pointer (self, (gpointer) &self);
+		return self;
+	}
+
+	return g_object_ref (self);
+}
+
 static void
 ssc_client_class_init (SSCClientClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
 	/* Virtual methods */
+	object_class->constructor = ssc_client_constructor;
 	object_class->dispose = ssc_client_dispose;
 	object_class->set_property = set_property;
 	object_class->get_property = get_property;
