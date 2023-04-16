@@ -41,7 +41,7 @@ magnetometer_close_cb (SSCSensorMagnetometer *self)
 
 static void magnetometer_measurement (SSCSensorMagnetometer *sensor, gfloat magnetic_field_x, gfloat magnetic_field_y, gfloat magnetic_field_z, gpointer user_data)
 {
-	g_printf ("Magnetometer measurement: X=%f Y=%f Z=%f m/s2", magnetic_field_x, magnetic_field_y, magnetic_field_z);
+	g_printf ("Magnetometer measurement: X=%f Y=%f Z=%f μT\n", magnetic_field_x, magnetic_field_y, magnetic_field_z);
 }
 
 static void
@@ -106,7 +106,7 @@ accelerometer_close_cb (SSCSensorAccelerometer *self)
 
 static void accelerometer_measurement (SSCSensorAccelerometer *sensor, gfloat accel_x, gfloat accel_y, gfloat accel_z, gpointer user_data)
 {
-	g_debug ("Accelerometer measurement: X=%f Y=%f Z=%f m/s2", accel_x, accel_y, accel_z);
+	g_printf ("Accelerometer measurement: X=%f Y=%f Z=%f m/s²\n", accel_x, accel_y, accel_z);
 }
 
 static void
@@ -172,7 +172,7 @@ light_close_cb (SSCSensorLight *self)
 
 static void light_measurement (SSCSensorLight *sensor, gfloat intensity, gpointer user_data)
 {
-	g_debug ("Light measurement: %f Lux", intensity);
+	g_printf ("Light measurement: %f Lux\n", intensity);
 }
 
 static void
@@ -238,7 +238,7 @@ proximity_close_cb (SSCSensorProximity *self)
 
 static void proximity_measurement (SSCSensorProximity *sensor, gboolean near, gpointer user_data)
 {
-	g_debug ("Proximity measurement: %s", near ? "NEAR" : "FAR");
+	g_printf ("Proximity measurement: %s\n", near ? "NEAR" : "FAR");
 }
 
 
