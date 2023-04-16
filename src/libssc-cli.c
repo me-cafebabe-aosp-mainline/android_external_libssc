@@ -56,7 +56,7 @@ proximity_open_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointer
 	}
 
 	g_debug ("Proximity sensor enabled");
-	g_timeout_add_seconds (2, (GSourceFunc)proximity_close_cb, sensor);
+	g_timeout_add_seconds (1, (GSourceFunc)proximity_close_cb, sensor);
 }
 
 static void
@@ -75,7 +75,7 @@ proximity_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 	}
 
 	g_signal_connect (SSC_SENSOR_PROXIMITY (sensor),
-			  "measurement-proximity",
+			  "measurement",
 			  G_CALLBACK (proximity_measurement),
 			  NULL);
 

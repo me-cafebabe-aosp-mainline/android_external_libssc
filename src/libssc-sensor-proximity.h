@@ -21,25 +21,27 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include "libssc-client.h"
+#include "libssc-common.h"
 #include "libssc-sensor.h"
+#include "ssc-common.pb-c.h"
 #include "ssc-sensor-proximity.pb-c.h"
-
-G_BEGIN_DECLS
 
 #define SSC_SENSOR_PROXIMITY_NEAR	1
 #define SSC_SENSOR_PROXIMITY_FAR	0
-
 #define SSC_TYPE_SENSOR_PROXIMITY (ssc_sensor_proximity_get_type())
+
+typedef struct _SSCSensorProximity {
+	SSCSensor parent;
+} SSCSensorProximity;
 
 G_DECLARE_FINAL_TYPE (SSCSensorProximity, ssc_sensor_proximity, SSC, SENSOR_PROXIMITY, SSCSensor);
 
 void		 	 ssc_sensor_proximity_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
-SSCSensorProximity	*ssc_sensor_proximity_new_finish (GAsyncResult *result, GError **error);
-void		 	 ssc_sensor_proximity_open (SSCSensorProximity *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
-gboolean	 	 ssc_sensor_proximity_open_finish (SSCSensorProximity *self, GAsyncResult *result, GError **error);
-void		 	 ssc_sensor_proximity_close (SSCSensorProximity *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
-gboolean	 	 ssc_sensor_proximity_close_finish (SSCSensorProximity *self, GAsyncResult *result, GError **error);
-
-G_END_DECLS
+SSCSensorProximity 	*ssc_sensor_proximity_new_finish (GAsyncResult *result, GError **error);
+void			 ssc_sensor_proximity_open (SSCSensorProximity *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+gboolean		 ssc_sensor_proximity_open_finish (SSCSensorProximity *self, GAsyncResult *result, GError **error);
+void			 ssc_sensor_proximity_close (SSCSensorProximity *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+gboolean		 ssc_sensor_proximity_close_finish (SSCSensorProximity *self, GAsyncResult *result, GError **error);
 
 #endif /* _LIBSSC_SENSOR_PROXIMITY_H_ */
