@@ -25,6 +25,7 @@ msgs = [
   'sensor-proximity',
   'sensor-light',
   'sensor-accelerometer',
+  'sensor-magnetometer',
 ]
 sources_gen = []
 headers_gen = []

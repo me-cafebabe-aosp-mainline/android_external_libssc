@@ -19,6 +19,71 @@
 #include "libssc-cli.h"
 
 static void
+magnetometer_close_ready (SSCSensorMagnetometer *sensor, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+
+	if (!ssc_sensor_magnetometer_close_finish (sensor, result, &error)) {
+		g_warning ("Failed to close magnetometer sensor");
+		return;
+	}
+
+	g_debug ("Magnetometer sensor disabled");
+}
+
+static gboolean
+magnetometer_close_cb (SSCSensorMagnetometer *self)
+{
+	ssc_sensor_magnetometer_close (self, NULL, (GAsyncReadyCallback)magnetometer_close_ready, NULL);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void magnetometer_measurement (SSCSensorMagnetometer *sensor, gfloat magnetic_field_x, gfloat magnetic_field_y, gfloat magnetic_field_z, gpointer user_data)
+{
+	g_printf ("Magnetometer measurement: X=%f Y=%f Z=%f m/s2", magnetic_field_x, magnetic_field_y, magnetic_field_z);
+}
+
+static void
+magnetometer_open_ready (SSCSensorMagnetometer *sensor, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+
+	if (!ssc_sensor_magnetometer_open_finish (sensor, result, &error)) {
+		g_warning ("Failed to open magnetometer sensor");
+		return;
+	}
+
+	g_debug ("Magnetometer sensor enabled");
+	g_timeout_add_seconds (1, (GSourceFunc)magnetometer_close_cb, sensor);
+}
+
+static void
+magnetometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+	SSCSensorMagnetometer *sensor = NULL;
+
+	sensor = ssc_sensor_magnetometer_new_finish (result, &error);
+
+	if (sensor)
+		g_debug ("Magnetometer Sensor allocated");
+	else {
+		g_debug ("Magnetometer sensor is NULL");
+		return;
+	}
+
+	g_signal_connect (SSC_SENSOR_MAGNETOMETER (sensor),
+			  "measurement",
+			  G_CALLBACK (magnetometer_measurement),
+			  NULL);
+
+	g_debug ("Magnetometer sensor enabling");
+	ssc_sensor_magnetometer_open (sensor, NULL, (GAsyncReadyCallback)magnetometer_open_ready, NULL);
+}
+
+/*****************************************************************************/
+static void
 accelerometer_close_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result, gpointer user_data)
 {
 	g_autoptr (GError) error = NULL;
@@ -83,6 +148,7 @@ accelerometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 }
 
 /*****************************************************************************/
+
 static void
 light_close_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_data)
 {
@@ -266,7 +332,8 @@ int main(int argc, char *argv[])
 	file = g_file_new_for_commandline_arg (cli.device_str);
 	//ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
 	//ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
-	ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
+	//ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
+	ssc_sensor_magnetometer_new (file, NULL, (GAsyncReadyCallback)magnetometer_ready, NULL);
 
 	g_main_loop_run(cli.loop);
 
