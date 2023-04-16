@@ -32,6 +32,7 @@ headers += files(
   'libssc-sensor.h',
   'libssc-sensor-proximity.h',
   'libssc-sensor-light.h',
+  'libssc-sensor-accelerometer.h',
 )
 
 cli_headers = files(
@@ -49,6 +50,7 @@ sources += files(
   'libssc-sensor.c',
   'libssc-sensor-proximity.c',
   'libssc-sensor-light.c',
+  'libssc-sensor-accelerometer.c',
 )
 
 cli_sources = files(

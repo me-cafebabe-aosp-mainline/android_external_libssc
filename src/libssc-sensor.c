@@ -160,6 +160,7 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 	SscEnableConfigRequest msg;
 	GArray *buf = NULL;
 	ReportReceivedContext *ctx;
+	guint32 msg_id;
 
 	priv = ssc_sensor_get_instance_private (self);
 	task = g_task_new (self, cancellable, callback, user_data);
@@ -191,7 +192,16 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 		buf = g_array_new (FALSE, FALSE, 1);
 		g_array_set_size (buf, ssc_enable_config_request__get_packed_size (&msg));
 		ssc_enable_config_request__pack (&msg, (unsigned char*) buf->data);
-	}
+		
+		msg_id = SSC_MSG_REQUEST_ENABLE_REPORT_CONTINUOUS;
+	/* 
+	 * Sensors which support on-change do not need any configuration,
+	 * only a different message ID to enable them.
+	 */
+	} else if (priv->stream_type == SSC_STREAM_TYPE_ON_CHANGE) {
+		msg_id = SSC_MSG_REQUEST_ENABLE_REPORT_ON_CHANGE;
+	} else
+		g_assert_not_reached ();
 
 	ctx = g_slice_new (ReportReceivedContext);
 	ctx->task = task;
@@ -206,7 +216,7 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 	ssc_client_send (priv->client,
 			 priv->uid_high,
 			 priv->uid_low,
-			 SSC_MSG_REQUEST_ENABLE_REPORT_ON_CHANGE,
+			 msg_id,
 			 buf,
 			 NULL,
 			 (GAsyncReadyCallback)sensor_open_ready,

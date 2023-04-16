@@ -19,6 +19,71 @@
 #include "libssc-cli.h"
 
 static void
+accelerometer_close_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+
+	if (!ssc_sensor_accelerometer_close_finish (sensor, result, &error)) {
+		g_warning ("Failed to close accelerometer sensor");
+		return;
+	}
+
+	g_debug ("Accelerometer sensor disabled");
+}
+
+static gboolean
+accelerometer_close_cb (SSCSensorAccelerometer *self)
+{
+	ssc_sensor_accelerometer_close (self, NULL, (GAsyncReadyCallback)accelerometer_close_ready, NULL);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void accelerometer_measurement (SSCSensorAccelerometer *sensor, gfloat accel_x, gfloat accel_y, gfloat accel_z, gpointer user_data)
+{
+	g_debug ("Accelerometer measurement: X=%f Y=%f Z=%f m/s2", accel_x, accel_y, accel_z);
+}
+
+static void
+accelerometer_open_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+
+	if (!ssc_sensor_accelerometer_open_finish (sensor, result, &error)) {
+		g_warning ("Failed to open accelerometer sensor");
+		return;
+	}
+
+	g_debug ("Accelerometer sensor enabled");
+	g_timeout_add_seconds (1, (GSourceFunc)accelerometer_close_cb, sensor);
+}
+
+static void
+accelerometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+	SSCSensorAccelerometer *sensor = NULL;
+
+	sensor = ssc_sensor_accelerometer_new_finish (result, &error);
+
+	if (sensor)
+		g_debug ("Accelerometer Sensor allocated");
+	else {
+		g_debug ("Accelerometer sensor is NULL");
+		return;
+	}
+
+	g_signal_connect (SSC_SENSOR_ACCELEROMETER (sensor),
+			  "measurement",
+			  G_CALLBACK (accelerometer_measurement),
+			  NULL);
+
+	g_debug ("Accelerometer sensor enabling");
+	ssc_sensor_accelerometer_open (sensor, NULL, (GAsyncReadyCallback)accelerometer_open_ready, NULL);
+}
+
+/*****************************************************************************/
+static void
 light_close_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_data)
 {
 	g_autoptr (GError) error = NULL;
@@ -199,8 +264,9 @@ int main(int argc, char *argv[])
 
 	/* Initialize QMI sensor client */
 	file = g_file_new_for_commandline_arg (cli.device_str);
-	ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
-	ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
+	//ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
+	//ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
+	ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
 
 	g_main_loop_run(cli.loop);
 
