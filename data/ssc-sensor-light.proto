@@ -15,28 +15,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+syntax = "proto2";
+import "ssc-common.proto";
 
-#ifndef _LIBSSC_CLI_H_
-#define _LIBSSC_CLI_H_
-
-#include <stdio.h>
-#include <glib.h>
-#include <glib/gstdio.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <gio/gio.h>
-#include <libqmi-glib.h>
-#include "libssc-client.h"
-#include "libssc-version.h"
-#include "libssc-sensor.h"
-#include "libssc-sensor-proximity.h"
-#include "libssc-sensor-light.h"
-
-typedef struct {
-	GMainLoop *loop;
-	gchar *device_str;
-	SSCClient *client;
-} SSCCli;
-
-#endif /* _LIBSSC_CLI_H_ */
+/*
+ * Light Sensor specific response data.
+ * @intensity: intensity in Lux [0] or raw sensor value [1].
+ * @accuracy: how reliable the value is [0, 3]. Higher is more accurate, 0 is unreliable.
+ */
+message SscLightResponse {
+	repeated float intensity = 1;
+	required int32 accuracy = 2;
+}

@@ -19,6 +19,72 @@
 #include "libssc-cli.h"
 
 static void
+light_close_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+
+	if (!ssc_sensor_light_close_finish (sensor, result, &error)) {
+		g_warning ("Failed to close light sensor");
+		return;
+	}
+
+	g_debug ("Light sensor disabled");
+}
+
+static gboolean
+light_close_cb (SSCSensorLight *self)
+{
+	ssc_sensor_light_close (self, NULL, (GAsyncReadyCallback)light_close_ready, NULL);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void light_measurement (SSCSensorLight *sensor, gfloat intensity, gpointer user_data)
+{
+	g_debug ("Light measurement: %f Lux", intensity);
+}
+
+static void
+light_open_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+
+	if (!ssc_sensor_light_open_finish (sensor, result, &error)) {
+		g_warning ("Failed to open light sensor");
+		return;
+	}
+
+	g_debug ("Light sensor enabled");
+	g_timeout_add_seconds (1, (GSourceFunc)light_close_cb, sensor);
+}
+
+static void
+light_ready (GFile *self, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr (GError) error = NULL;
+	SSCSensorLight *sensor = NULL;
+
+	sensor = ssc_sensor_light_new_finish (result, &error);
+
+	if (sensor)
+		g_debug ("Light Sensor allocated");
+	else {
+		g_debug ("Light sensor is NULL");
+		return;
+	}
+
+	g_signal_connect (SSC_SENSOR_LIGHT (sensor),
+			  "measurement",
+			  G_CALLBACK (light_measurement),
+			  NULL);
+
+	g_debug ("Light sensor enabling");
+	ssc_sensor_light_open (sensor, NULL, (GAsyncReadyCallback)light_open_ready, NULL);
+}
+
+/*****************************************************************************/
+
+static void
 proximity_close_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointer user_data)
 {
 	g_autoptr (GError) error = NULL;
@@ -83,6 +149,8 @@ proximity_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 	ssc_sensor_proximity_open (sensor, NULL, (GAsyncReadyCallback)proximity_open_ready, NULL);
 }
 
+/*****************************************************************************/
+
 int main(int argc, char *argv[])
 {
 	g_autoptr(GOptionContext) opt_context = NULL;
@@ -126,24 +194,13 @@ int main(int argc, char *argv[])
 	cli.device_str = g_strdup(device_str);
 	g_debug ("QMI device: %s", cli.device_str);
 
-	//ssc_client_new (file, NULL, (GAsyncReadyCallback)client_init_ready, NULL);
-	/*cli.client = ssc_client_init_sync (obj, file, &err);
-	if (!err) {
-		g_printerr ("Failed to allocate SSC client: %s", err->message);
-		return EXIT_FAILURE;
-	}
-
-	if (!cli.client)
-		return EXIT_FAILURE;
-
-	g_info ("SSC client sync initialized");*/
-
 	/* Start GLib main loop */
 	cli.loop = g_main_loop_new(NULL, FALSE);
 
 	/* Initialize QMI sensor client */
 	file = g_file_new_for_commandline_arg (cli.device_str);
 	ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
+	ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
 
 	g_main_loop_run(cli.loop);
 

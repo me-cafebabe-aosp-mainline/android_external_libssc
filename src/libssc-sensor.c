@@ -246,8 +246,14 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	if (uid_high == SSC_SENSOR_UID_SUID_HIGH && uid_low == SSC_SENSOR_UID_SUID_LOW && msg_id == SSC_MSG_RESPONSE_SUID) {
 		suid_msg = ssc_suid_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
+		/* Ignore if data type does not match due to concurrency */
+		if (g_strcmp0 (suid_msg->data_type, priv->data_type) != 0) {
+			ssc_suid_response__free_unpacked (suid_msg, NULL);
+			return;
+		}
+
 		/* Only default sensor for data type is reported */
-		if (suid_msg != NULL && suid_msg->n_uid > 0 && g_strcmp0 (suid_msg->data_type, priv->data_type) == 0) {
+		if (suid_msg != NULL && suid_msg->n_uid > 0) {
 			priv->uid_high = suid_msg->uid[0]->high;
 			priv->uid_low = suid_msg->uid[0]->low;
 

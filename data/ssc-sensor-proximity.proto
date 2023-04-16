@@ -22,7 +22,7 @@ import "ssc-common.proto";
  * Proximity Sensor specific response data.
  * @near: in-proximity or not, NEAR = 1, FAR = 0.
  * @distance: raw distance from sensor, vendor-specific.
- * @accuracy: how reliable the value is [0, 3]. Higher is more accurate.
+ * @accuracy: how reliable the value is [0, 3]. Higher is more accurate, 0 is unreliable.
  */
 message SscProximityResponse {
 	required int32 near = 1;

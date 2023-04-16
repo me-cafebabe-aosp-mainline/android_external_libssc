@@ -23,6 +23,7 @@ msgs = [
   'common',
   'sensor-suid',
   'sensor-proximity',
+  'sensor-light',
 ]
 sources_gen = []
 headers_gen = []
