@@ -18,6 +18,8 @@
 
 #include "libssc-cli.h"
 
+#define ENABLE_SECONDS 3
+
 static void
 magnetometer_close_ready (SSCSensorMagnetometer *sensor, GAsyncResult *result, gpointer user_data)
 {
@@ -29,6 +31,8 @@ magnetometer_close_ready (SSCSensorMagnetometer *sensor, GAsyncResult *result, g
 	}
 
 	g_debug ("Magnetometer sensor disabled");
+
+	exit(0);
 }
 
 static gboolean
@@ -55,7 +59,7 @@ magnetometer_open_ready (SSCSensorMagnetometer *sensor, GAsyncResult *result, gp
 	}
 
 	g_debug ("Magnetometer sensor enabled");
-	g_timeout_add_seconds (1, (GSourceFunc)magnetometer_close_cb, sensor);
+	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)magnetometer_close_cb, sensor);
 }
 
 static void
@@ -83,6 +87,7 @@ magnetometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 }
 
 /*****************************************************************************/
+
 static void
 accelerometer_close_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result, gpointer user_data)
 {
@@ -94,6 +99,8 @@ accelerometer_close_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result,
 	}
 
 	g_debug ("Accelerometer sensor disabled");
+
+	exit(0);
 }
 
 static gboolean
@@ -120,7 +127,7 @@ accelerometer_open_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result, 
 	}
 
 	g_debug ("Accelerometer sensor enabled");
-	g_timeout_add_seconds (1, (GSourceFunc)accelerometer_close_cb, sensor);
+	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)accelerometer_close_cb, sensor);
 }
 
 static void
@@ -160,6 +167,8 @@ light_close_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_d
 	}
 
 	g_debug ("Light sensor disabled");
+
+	exit(0);
 }
 
 static gboolean
@@ -186,7 +195,7 @@ light_open_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_da
 	}
 
 	g_debug ("Light sensor enabled");
-	g_timeout_add_seconds (1, (GSourceFunc)light_close_cb, sensor);
+	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)light_close_cb, sensor);
 }
 
 static void
@@ -226,6 +235,8 @@ proximity_close_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointe
 	}
 
 	g_debug ("Proximity sensor disabled");
+
+	exit(0);
 }
 
 static gboolean
@@ -253,7 +264,7 @@ proximity_open_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointer
 	}
 
 	g_debug ("Proximity sensor enabled");
-	g_timeout_add_seconds (1, (GSourceFunc)proximity_close_cb, sensor);
+	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)proximity_close_cb, sensor);
 }
 
 static void
@@ -291,10 +302,12 @@ int main(int argc, char *argv[])
 	SSCCli cli;
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
+	g_autofree gchar *sensor_str = "";
 	const GOptionEntry options[] = {
-		{ "version", 'v', 0, G_OPTION_ARG_NONE, &print_version, "Print version information and exit.", NULL },
-		{ "device", 'v', 0, G_OPTION_ARG_STRING, &device_str, "QMI device to use, default 'qrtr://0'.", NULL },
+		{ "version", 0, 0, G_OPTION_ARG_NONE, &print_version, "Print version information and exit.", NULL },
+		{ "device", 0, 0, G_OPTION_ARG_STRING, &device_str, "QMI device to use, default 'qrtr://0'.", NULL },
 		{ "debug", 'v', 0, G_OPTION_ARG_NONE, &debug, "Enable debug logs.", NULL },
+		{ "sensor", 0, 0, G_OPTION_ARG_STRING, &sensor_str, "Enable a sensor. Supported sensors: 'proximity', 'light', 'accelerometer', 'magnetometer'", NULL },
 		{ NULL, 0, 0, G_OPTION_ARG_NONE, NULL, NULL, NULL }
 	};
 
@@ -323,19 +336,23 @@ int main(int argc, char *argv[])
 
 	/* Read QMI device node */
 	cli.device_str = g_strdup(device_str);
+	file = g_file_new_for_commandline_arg (cli.device_str);
 	g_debug ("QMI device: %s", cli.device_str);
 
+	if (g_strcmp0 (sensor_str, "proximity") == 0)
+		ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
+	else if (g_strcmp0 (sensor_str, "light") == 0)
+		ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
+	else if (g_strcmp0 (sensor_str, "accelerometer") == 0)
+		ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
+	else if (g_strcmp0 (sensor_str, "magnetometer") == 0)
+		ssc_sensor_magnetometer_new (file, NULL, (GAsyncReadyCallback)magnetometer_ready, NULL);
+	else
+		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer'");
+
 	/* Start GLib main loop */
-	cli.loop = g_main_loop_new(NULL, FALSE);
-
-	/* Initialize QMI sensor client */
-	file = g_file_new_for_commandline_arg (cli.device_str);
-	//ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
-	//ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
-	//ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
-	ssc_sensor_magnetometer_new (file, NULL, (GAsyncReadyCallback)magnetometer_ready, NULL);
-
-	g_main_loop_run(cli.loop);
+	cli.loop = g_main_loop_new (NULL, FALSE);
+	g_main_loop_run (cli.loop);
 
 	return 0;
 }

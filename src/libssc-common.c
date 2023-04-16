@@ -21,15 +21,21 @@
 void
 ssc_common_dump_protobuf (GArray *protobuf)
 {
+	GString *str = NULL;
+	g_autofree gchar *data = NULL;
+
 	if (protobuf == NULL) {
 		g_warning ("Invalid ProtoBuf data!");
 		return;
 	}
 
 	g_debug ("ProtoBuf data:");
+	str = g_string_new ("");
 	for (gsize i = 0; i < protobuf->len; i++) {
 		guint8 value = g_array_index (protobuf, guint8, i);
-		g_printf ("\\x%02x", value);
+		g_string_append_printf (str, "\\x%02x", value); 
 	}
-	g_printf ("\n");
+
+	data = g_string_free (str, FALSE);
+	g_debug (data);
 }
