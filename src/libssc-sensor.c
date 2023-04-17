@@ -38,8 +38,6 @@ typedef struct {
 	SSCSensor *sensor;
 } ReportReceivedContext;
 
-static void async_initable_iface_init (GAsyncInitableIface *iface);
-
 typedef struct _SSCSensorPrivate {
 	guint64 uid_low;
 	guint64 uid_high;
@@ -55,6 +53,8 @@ typedef struct _SSCSensorPrivate {
 	gboolean attr_populated;
 	GFile *file;
 } SSCSensorPrivate;
+
+static void async_initable_iface_init (GAsyncInitableIface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (SSCSensor, ssc_sensor, G_TYPE_OBJECT,
 			 G_ADD_PRIVATE (SSCSensor)
@@ -158,7 +158,7 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 	SSCSensorPrivate *priv = NULL;
 	GTask *task = NULL;
 	SscEnableConfigRequest msg;
-	GArray *buf = NULL;
+	g_autoptr (GArray) buf = NULL;
 	ReportReceivedContext *ctx;
 	guint32 msg_id;
 
@@ -280,6 +280,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			
 			g_task_return_boolean (ctx->task, FALSE);
 			g_clear_object (&ctx->task);
+			g_slice_free (ReportReceivedContext, ctx);
 			return;
 		}
 	/* Attributes populating response */
@@ -329,6 +330,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			priv->report_id = 0;
 			g_task_return_boolean (ctx->task, attributes_populated);
 			g_clear_object (&ctx->task);
+			g_slice_free (ReportReceivedContext, ctx);
 		}
 		
 		ssc_attr_response__free_unpacked (attr_msg, NULL);
@@ -340,12 +342,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		g_debug ("  mode: %s", config_msg->mode ? config_msg->mode : "UNKNOWN");
 		g_debug ("  sample-rate: %f Hz", config_msg->has_sample_rate ? config_msg->sample_rate : 0.0);
 
+		/* Configuration updated, complete task and stop listening */
 		if (ctx->task) {
 			g_signal_handler_disconnect (self, priv->report_id);
 			priv->report_id = 0;
 			g_task_return_boolean (ctx->task, TRUE);
 			g_clear_object (&ctx->task);	
-			ctx->task = NULL;
+			g_slice_free (ReportReceivedContext, ctx);
 		}
 
 		ssc_config_response__free_unpacked (config_msg, NULL);
@@ -371,7 +374,7 @@ attribute_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 static void
 attribute (SSCSensor *self, GTask *task)
 {
-	GArray *buf = NULL;
+	g_autoptr (GArray) buf = NULL;
 	SscAttrRequest msg;
 	SSCSensorPrivate *priv = NULL;
 
@@ -419,7 +422,7 @@ discover (SSCSensor *self, GTask *task)
 {
 	SSCSensorPrivate *priv = NULL;
 	SscSuidRequest msg;
-	GArray *buf = NULL;
+	g_autoptr (GArray) buf = NULL;
 
 	priv = ssc_sensor_get_instance_private (self);
 
@@ -587,6 +590,19 @@ sensor_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *
 }
 
 static void
+sensor_dispose (GObject *object)
+{
+	SSCSensor *self = SSC_SENSOR (object);
+	SSCSensorPrivate *priv = ssc_sensor_get_instance_private (self);
+
+	g_free (&priv->name);
+	g_free (&priv->vendor);
+	g_free (&priv->data_type);
+	g_clear_object (&priv->client);
+	g_clear_object (&priv->file);
+}
+
+static void
 ssc_sensor_class_init (SSCSensorClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -594,6 +610,7 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 
 	object_class->get_property = sensor_get_property;
 	object_class->set_property = sensor_set_property;
+	object_class->dispose = sensor_dispose;
 
 	ssc_sensor_class->open = sensor_open;
 	ssc_sensor_class->open_finish = sensor_open_finish;
