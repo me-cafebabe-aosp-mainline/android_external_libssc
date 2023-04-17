@@ -67,9 +67,9 @@ handle_report (SSCClient *self, GArray *protobuf)
 
 	for (gsize i = 0; i < msg->n_response; i++) {
 		SscClientResponseBody *body = msg->response[i];
-		GArray *buf = g_array_new (FALSE, FALSE, 1);
+		GArray* buf = g_array_new (FALSE, FALSE, 1);
 		g_array_set_size (buf, body->msg.len);
-		buf->data = (char *) body->msg.data;
+		memcpy (buf->data, (char *) body->msg.data, body->msg.len);
 
 		g_debug ("Got message %" G_GUINT32_FORMAT " for sensor %016lX %016lX", body->msg_id, msg->uid->high, msg->uid->low);
 
@@ -79,6 +79,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 		 * once they have processed it.
 		 */
 		g_signal_emit (self, signals[SIGNAL_REPORT], 0, body->msg_id, msg->uid->high, msg->uid->low, buf);
+		g_array_free (buf, TRUE);
 	}
 
 	ssc_client_response__free_unpacked (msg, NULL);
@@ -87,7 +88,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 static void
 report_large_received (QmiClientSsc *self, QmiIndicationSscReportLargeOutput *output, gpointer user_data)
 {
-	SSCClient *client = user_data;
+	SSCClient *client = SSC_CLIENT (user_data);
 	g_autoptr (GError) error = NULL;
 	GArray *protobuf = NULL;
 
@@ -102,7 +103,7 @@ report_large_received (QmiClientSsc *self, QmiIndicationSscReportLargeOutput *ou
 static void
 report_small_received (QmiClientSsc *self, QmiIndicationSscReportSmallOutput *output, gpointer user_data)
 {
-	SSCClient *client = user_data;
+	SSCClient *client = SSC_CLIENT (user_data);
 	g_autoptr (GError) error = NULL;
 	GArray *protobuf = NULL;
 
@@ -119,7 +120,7 @@ request_ready (QmiClientSsc *self, GAsyncResult *res, gpointer user_data)
 {
 	QmiMessageSscControlOutput *output = NULL;
 	g_autoptr (GError) 	    error = NULL;
-	GTask                      *task = user_data;
+	GTask                      *task = G_TASK (user_data);
 
 	output = qmi_client_ssc_control_finish (self, res, &error);
 	if (!output) {
@@ -154,7 +155,7 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	GTask                     *task = NULL;
 	QmiMessageSscControlInput *input = NULL;
 	g_autoptr (GError)	   error = NULL;
-	GArray                    *buf = NULL;
+	g_autoptr (GArray)    	   buf = NULL;
 	SscClientRequestBody       body_msg;
 	SscClientConfig            config_msg;
 	SscClientRequest           client_msg;
@@ -191,6 +192,8 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 
 	if (buf == NULL) {
 		g_warning ("Protobuf message couldn't be build for SUID sensor");
+		//g_task_return_error ();
+		g_clear_object (&task);
 		return;
 	}
 	ssc_common_dump_protobuf (buf);
@@ -201,12 +204,16 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	if (!qmi_message_ssc_control_input_set_unknown_value (input, SSC_QMI_REQUEST_UNKNOWN_VALUE, &error)) {
 		g_warning ("Inserting unknown value failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
+		//g_task_return_error ();
+		g_clear_object (&task);
 		return;
 	}
 
 	if (!qmi_message_ssc_control_input_set_protobuf_data (input, buf, &error)) {
 		g_warning ("Inserting protobuf data failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
+		//g_task_return_error ();
+		g_clear_object (&task);
 		return;
 	}
 
@@ -369,6 +376,14 @@ ssc_client_init (SSCClient *self)
 static void
 ssc_client_dispose (GObject *object)
 {
+	SSCClientPrivate *priv = NULL;
+
+	priv = ssc_client_get_instance_private (SSC_CLIENT (object));
+
+	g_clear_object (&priv->qmi_client_ssc);
+	g_clear_object (&priv->device);
+	g_clear_object (&priv->file);
+
 	G_OBJECT_CLASS (ssc_client_parent_class)->dispose (object);
 }
 
