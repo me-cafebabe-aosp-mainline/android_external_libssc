@@ -70,11 +70,9 @@ magnetometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 
 	sensor = ssc_sensor_magnetometer_new_finish (result, &error);
 
-	if (sensor)
-		g_debug ("Magnetometer Sensor allocated");
-	else {
-		g_debug ("Magnetometer sensor is NULL");
-		return;
+	if (!sensor) {
+		g_printf ("Magnetometer sensor is unavailable\n");
+		exit(1);
 	}
 
 	g_signal_connect (SSC_SENSOR_MAGNETOMETER (sensor),
@@ -138,11 +136,9 @@ accelerometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 
 	sensor = ssc_sensor_accelerometer_new_finish (result, &error);
 
-	if (sensor)
-		g_debug ("Accelerometer Sensor allocated");
-	else {
-		g_debug ("Accelerometer sensor is NULL");
-		return;
+	if (!sensor) {
+		g_printf ("Accelerometer sensor is unavailable\n");
+		exit(1);
 	}
 
 	g_signal_connect (SSC_SENSOR_ACCELEROMETER (sensor),
@@ -206,11 +202,9 @@ light_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 
 	sensor = ssc_sensor_light_new_finish (result, &error);
 
-	if (sensor)
-		g_debug ("Light Sensor allocated");
-	else {
-		g_debug ("Light sensor is NULL");
-		return;
+	if (!sensor) {
+		g_printf ("Light sensor is unavailable\n");
+		exit(1);
 	}
 
 	g_signal_connect (SSC_SENSOR_LIGHT (sensor),
@@ -275,11 +269,9 @@ proximity_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 
 	sensor = ssc_sensor_proximity_new_finish (result, &error);
 
-	if (sensor)
-		g_debug ("Proximity Sensor allocated");
-	else {
-		g_debug ("Proximity sensor is NULL");
-		return;
+	if (!sensor) {
+		g_printf ("Proximity sensor is unavailable\n");
+		exit(1);
 	}
 
 	g_signal_connect (SSC_SENSOR_PROXIMITY (sensor),
@@ -347,8 +339,10 @@ int main(int argc, char *argv[])
 		ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
 	else if (g_strcmp0 (sensor_str, "magnetometer") == 0)
 		ssc_sensor_magnetometer_new (file, NULL, (GAsyncReadyCallback)magnetometer_ready, NULL);
-	else
-		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer'");
+	else {
+		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer'\n");
+		return 1;
+	}
 
 	/* Start GLib main loop */
 	cli.loop = g_main_loop_new (NULL, FALSE);
