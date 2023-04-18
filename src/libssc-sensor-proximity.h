@@ -39,9 +39,12 @@ G_DECLARE_FINAL_TYPE (SSCSensorProximity, ssc_sensor_proximity, SSC, SENSOR_PROX
 
 void		 	 ssc_sensor_proximity_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 SSCSensorProximity 	*ssc_sensor_proximity_new_finish (GAsyncResult *result, GError **error);
+SSCSensorProximity 	*ssc_sensor_proximity_new_sync (GFile *file, GCancellable *cancellable, GError **error);
 void			 ssc_sensor_proximity_open (SSCSensorProximity *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_proximity_open_finish (SSCSensorProximity *self, GAsyncResult *result, GError **error);
+gboolean		 ssc_sensor_proximity_open_sync (SSCSensorProximity *self, GCancellable *cancellable, GError **error);
 void			 ssc_sensor_proximity_close (SSCSensorProximity *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_proximity_close_finish (SSCSensorProximity *self, GAsyncResult *result, GError **error);
+gboolean		 ssc_sensor_proximity_close_sync (SSCSensorProximity *self, GCancellable *cancellable, GError **error);
 
 #endif /* _LIBSSC_SENSOR_PROXIMITY_H_ */

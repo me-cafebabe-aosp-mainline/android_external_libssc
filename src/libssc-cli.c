@@ -234,6 +234,23 @@ proximity_close_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointe
 }
 
 static gboolean
+proximity_close_cb2 (SSCSensorProximity *self)
+{
+	g_autoptr (GError) err = NULL;
+
+	g_debug ("proximity_close_cb2");
+
+	if (!ssc_sensor_proximity_close_sync (self, NULL, &err)) {
+		g_warning ("Unable to close sensor: %s", err ? err->message : "NULL");
+	}
+
+	g_debug ("PROX disabled");
+	exit(0);
+
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean
 proximity_close_cb (SSCSensorProximity *self)
 {
 	ssc_sensor_proximity_close (self, NULL, (GAsyncReadyCallback)proximity_close_ready, NULL);
@@ -331,9 +348,23 @@ int main(int argc, char *argv[])
 	file = g_file_new_for_commandline_arg (cli.device_str);
 	g_debug ("QMI device: %s", cli.device_str);
 
-	if (g_strcmp0 (sensor_str, "proximity") == 0)
-		ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
-	else if (g_strcmp0 (sensor_str, "light") == 0)
+	if (g_strcmp0 (sensor_str, "proximity") == 0) {
+		//ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
+		SSCSensorProximity *prox = ssc_sensor_proximity_new_sync (file, NULL, &err);
+		if (!prox) {
+			g_warning ("Unable to initialize sensor: %s", err ? err->message : "NULL");
+			return -2;
+		}
+		g_signal_connect (prox,
+			  	  "measurement",
+			  	  G_CALLBACK (proximity_measurement),
+			  	  NULL);
+		if (!ssc_sensor_proximity_open_sync (prox, NULL, &err)) {
+			g_warning ("Unable to open sensor: %s", err ? err->message : "UNKNOWN");
+			return -3;
+		}
+		g_timeout_add_seconds (5, (GSourceFunc)proximity_close_cb2, prox);
+	} else if (g_strcmp0 (sensor_str, "light") == 0)
 		ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
 	else if (g_strcmp0 (sensor_str, "accelerometer") == 0)
 		ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
