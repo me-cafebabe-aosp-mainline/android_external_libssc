@@ -305,7 +305,7 @@ proximity_ready (GFile *self, GAsyncResult *result, gpointer user_data)
 int main(int argc, char *argv[])
 {
 	g_autoptr(GOptionContext) opt_context = NULL;
-	g_autoptr(GError) err = NULL;
+	GError *err = NULL;
 	GFile *file = NULL;
 	g_autofree gchar *device_str = "qrtr://0";
 	SSCCli cli;
