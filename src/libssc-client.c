@@ -124,7 +124,6 @@ request_ready (QmiClientSsc *self, GAsyncResult *res, gpointer user_data)
 
 	output = qmi_client_ssc_control_finish (self, res, &error);
 	if (!output) {
-		qmi_message_ssc_control_output_unref (output);
 		g_task_return_error (task, error);
 		g_clear_object (&task);
 		return;
