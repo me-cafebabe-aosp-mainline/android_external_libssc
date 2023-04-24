@@ -114,7 +114,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		/* Only emit signal when measurement actually changed */
 		if (priv->near != near) {
 			priv->near = near;
-			g_debug ("Proximity sensor measurement: %s", near ? "near" : "far");
+
 			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, near);
 		}
 

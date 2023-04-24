@@ -62,7 +62,6 @@ handle_report (SSCClient *self, GArray *protobuf)
 {
 	SscClientResponse *msg;
 
-	ssc_common_dump_protobuf (protobuf);
 	msg = ssc_client_response__unpack (NULL, protobuf->len, (const uint8_t *) protobuf->data);
 
 	for (gsize i = 0; i < msg->n_response; i++) {
@@ -71,7 +70,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 		g_array_set_size (buf, body->msg.len);
 		memcpy (buf->data, (char *) body->msg.data, body->msg.len);
 
-		g_debug ("Got message %" G_GUINT32_FORMAT " for sensor %016lX %016lX", body->msg_id, msg->uid->high, msg->uid->low);
+		//g_debug ("Got message %" G_GUINT32_FORMAT " for sensor %016lX %016lX", body->msg_id, msg->uid->high, msg->uid->low);
 
 		/*
 		 * Emit a GSignal on which sensor drivers can subscribe to
@@ -195,7 +194,6 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 		g_clear_object (&task);
 		return;
 	}
-	ssc_common_dump_protobuf (buf);
 
 	/* Build QMI message */
 	input = qmi_message_ssc_control_input_new ();

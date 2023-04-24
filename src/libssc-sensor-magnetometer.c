@@ -104,7 +104,6 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			y = msg->magnetic_field[1];
 			z = msg->magnetic_field[2];
 
-			g_debug ("Magnetometer sensor measurement: X=%f Y=%f Z=%f μT", x, y, z);
 			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, x, y, z); 
 		}
 

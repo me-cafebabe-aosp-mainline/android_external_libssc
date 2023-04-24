@@ -104,7 +104,6 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			y = msg->acceleration[1];
 			z = msg->acceleration[2];
 
-			g_debug ("Accelerometer sensor measurement: X=%f Y=%f Z=%f m/s²", x, y, z);
 			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, x, y, z); 
 		}
 

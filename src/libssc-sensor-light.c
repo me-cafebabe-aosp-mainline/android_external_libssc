@@ -100,7 +100,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		/* Only report intensity in Lux, raw sensor values are ignored */
 		if (msg->n_intensity >= 1) {
 			intensity = msg->intensity[0];
-			g_debug ("Light sensor measurement: %f Lux", intensity);
+
 			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, intensity); 
 		}
 
