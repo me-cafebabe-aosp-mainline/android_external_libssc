@@ -37,9 +37,12 @@ G_DECLARE_FINAL_TYPE (SSCSensorAccelerometer, ssc_sensor_accelerometer, SSC, SEN
 
 void		 	 ssc_sensor_accelerometer_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 SSCSensorAccelerometer 	*ssc_sensor_accelerometer_new_finish (GAsyncResult *result, GError **error);
+SSCSensorAccelerometer      *ssc_sensor_accelerometer_new_sync (GFile *file, GCancellable *cancellable, GError **error);
 void			 ssc_sensor_accelerometer_open (SSCSensorAccelerometer *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_accelerometer_open_finish (SSCSensorAccelerometer *self, GAsyncResult *result, GError **error);
+gboolean                 ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *cancellable, GError **error);
 void			 ssc_sensor_accelerometer_close (SSCSensorAccelerometer *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_accelerometer_close_finish (SSCSensorAccelerometer *self, GAsyncResult *result, GError **error);
+gboolean                 ssc_sensor_accelerometer_close_sync (SSCSensorAccelerometer *self, GCancellable *cancellable, GError **error);
 
 #endif /* _LIBSSC_SENSOR_ACCELEROMETER_H_ */
