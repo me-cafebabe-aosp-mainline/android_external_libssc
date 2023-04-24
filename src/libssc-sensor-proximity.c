@@ -29,6 +29,7 @@ typedef struct _SSCSensorProximityPrivate {
 	GMainContext *context;
 	GThread *thread;
 	GMainLoop *loop;
+	gboolean near;
 } SSCSensorProximityPrivate;
 
 G_DEFINE_TYPE_WITH_CODE (SSCSensorProximity, ssc_sensor_proximity, SSC_TYPE_SENSOR,
@@ -40,12 +41,85 @@ typedef struct {
 } SyncContext;
 
 static void
-new_sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
+sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 {
 	SyncContext *ctx = user_data;
 
 	ctx->result = g_object_ref (result);
 	g_main_loop_quit (ctx->loop);
+}
+
+/*****************************************************************************/
+
+static gpointer
+report_receiver_thread (gpointer user_data)
+{
+	SSCSensorProximity *self = SSC_SENSOR_PROXIMITY (user_data);
+	SSCSensorProximityPrivate *priv = NULL;
+	SSCClient *client = NULL;
+
+	priv = ssc_sensor_proximity_get_instance_private (self);
+	g_warn_if_fail (priv->context);
+
+	/*
+	 * Create main loop with context to receive QMI indications.
+	 * The loop will be quited in close_sync when the thread should exit.
+	 * Once quited, disconnect signal handler.
+	 */
+	g_main_context_push_thread_default (priv->context);
+
+	priv->loop = g_main_loop_new (priv->context, TRUE);
+	g_main_loop_run (priv->loop);
+
+	g_object_get (SSC_SENSOR (self),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	g_signal_handler_disconnect (client, priv->report_id);
+
+	g_main_context_pop_thread_default (priv->context);
+
+	return NULL;
+}
+
+static void
+report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
+{
+	SscProximityResponse *msg = NULL;
+	SSCSensorProximity *sensor = SSC_SENSOR_PROXIMITY (user_data);
+	SSCSensorProximityPrivate *priv = NULL;
+	guint64 sensor_uid_low;
+	guint64 sensor_uid_high;
+	gboolean near = false;
+
+	g_object_get (SSC_SENSOR (sensor),
+		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
+		      SSC_SENSOR_UID_LOW, &sensor_uid_low,
+		      NULL);
+
+	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT_PROXIMITY) {
+		msg = ssc_proximity_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+		priv = ssc_sensor_proximity_get_instance_private (sensor);
+
+		switch (msg->near) {
+			case SSC_SENSOR_PROXIMITY_NEAR:
+				near = true;
+				break;
+			case SSC_SENSOR_PROXIMITY_FAR:
+				near = false;
+				break;
+			default:
+				g_assert_not_reached ();
+		}
+
+		/* Only emit signal when measurement actually changed */
+		if (priv->near != near) {
+			priv->near = near;
+			g_debug ("Proximity sensor measurement: %s", near ? "near" : "far");
+			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, near);
+		}
+
+		ssc_proximity_response__free_unpacked (msg, NULL);
+	}
 }
 
 /*****************************************************************************/
@@ -103,7 +177,7 @@ ssc_sensor_proximity_close_sync (SSCSensorProximity *self, GCancellable *cancell
 	g_main_context_push_thread_default (priv->context);
 	ctx.loop = g_main_loop_new (priv->context, TRUE);
 
-	ssc_sensor_proximity_close (self, cancellable, new_sync_cb, &ctx);
+	ssc_sensor_proximity_close (self, cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	success = ssc_sensor_proximity_close_finish (self, ctx.result, error);
 
@@ -148,8 +222,6 @@ ssc_sensor_proximity_open (SSCSensorProximity *self, GCancellable *cancellable, 
 	SSC_SENSOR_CLASS (ssc_sensor_proximity_parent_class)->open (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)proximity_open_ready, task);
 }
 
-static gpointer report_receiver_thread (gpointer user_data);
-
 gboolean
 ssc_sensor_proximity_open_sync (SSCSensorProximity *self, GCancellable *cancellable, GError **error)
 {
@@ -163,82 +235,16 @@ ssc_sensor_proximity_open_sync (SSCSensorProximity *self, GCancellable *cancella
 	g_main_context_push_thread_default (priv->context);
 	ctx.loop = g_main_loop_new (priv->context, TRUE);
 
-	ssc_sensor_proximity_open (self, cancellable, new_sync_cb, &ctx);
+	ssc_sensor_proximity_open (self, cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	success = ssc_sensor_proximity_open_finish (self, ctx.result, error);
 
 	/* Start report thread to watch for incoming measurements over QMI indications */
-	priv->thread = g_thread_new ("report-receiver", report_receiver_thread, self);
+	priv->thread = g_thread_new ("report-receiver-proximity", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
 
 	return success;
-}
-
-/*****************************************************************************/
-
-static gpointer
-report_receiver_thread (gpointer user_data)
-{
-	SSCSensorProximity *self = SSC_SENSOR_PROXIMITY (user_data);
-	SSCSensorProximityPrivate *priv = NULL;
-	SSCClient *client = NULL;
-
-	priv = ssc_sensor_proximity_get_instance_private (self);
-	g_warn_if_fail (priv->context);
-
-	/* 
-	 * Create main loop with context to receive QMI indications.
-	 * The loop will be quited in close_sync when the thread should exit.
-	 * Once quited, disconnect signal handler.
-	 */
-	g_main_context_push_thread_default (priv->context);
-
-	priv->loop = g_main_loop_new (priv->context, TRUE);
-	g_main_loop_run (priv->loop);
-	g_object_get (SSC_SENSOR (self),
-		      SSC_SENSOR_CLIENT, &client,
-		      NULL);
-	g_signal_handler_disconnect (client, priv->report_id);
-
-	g_main_context_pop_thread_default (priv->context);
-
-	return NULL;
-}
-
-static void
-report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
-{
-	SscProximityResponse *msg = NULL;
-	SSCSensorProximity *sensor = SSC_SENSOR_PROXIMITY (user_data);
-	guint64 sensor_uid_low;
-	guint64 sensor_uid_high;
-	gboolean near = false;
-
-	g_object_get (sensor,
-		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
-		      SSC_SENSOR_UID_LOW, &sensor_uid_low,
-		      NULL);
-
-	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT_PROXIMITY) {
-		msg = ssc_proximity_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
-
-		switch (msg->near) {
-			case SSC_SENSOR_PROXIMITY_NEAR:
-				near = true;
-				break;
-			case SSC_SENSOR_PROXIMITY_FAR:
-				near = false;
-				break;
-			default:
-				g_assert_not_reached ();
-		}
-
-		g_debug ("Proximity sensor measurement: %s", near ? "near" : "far");
-		g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, near); 
-
-		ssc_proximity_response__free_unpacked (msg, NULL);
-	}
 }
 
 /*****************************************************************************/
@@ -318,7 +324,7 @@ ssc_sensor_proximity_new_sync (GFile *file, GCancellable *cancellable, GError **
 	ctx.loop = g_main_loop_new (context, TRUE);
 
 	/* Create sensor */
-	ssc_sensor_proximity_new (file, cancellable, new_sync_cb, &ctx);
+	ssc_sensor_proximity_new (file, cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	self = ssc_sensor_proximity_new_finish (ctx.result, error);
 
