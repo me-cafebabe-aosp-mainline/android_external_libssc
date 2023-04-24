@@ -26,11 +26,91 @@ static guint signals[N_SIGNALS];
 
 typedef struct _SSCSensorMagnetometerPrivate {
 	guint report_id;
-	GFile *file;
+	GMainContext *context;
+	GThread *thread;
+	GMainLoop *loop;
 } SSCSensorMagnetometerPrivate;
 
 G_DEFINE_TYPE_WITH_CODE (SSCSensorMagnetometer, ssc_sensor_magnetometer, SSC_TYPE_SENSOR,
 			 G_ADD_PRIVATE (SSCSensorMagnetometer))
+
+typedef struct {
+	GAsyncResult *result;
+	GMainLoop *loop;
+} SyncContext;
+
+static void
+sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	SyncContext *ctx = user_data;
+
+	ctx->result = g_object_ref (result);
+	g_main_loop_quit (ctx->loop);
+}
+
+/*****************************************************************************/
+
+static gpointer
+report_receiver_thread (gpointer user_data)
+{
+	SSCSensorMagnetometer *self = SSC_SENSOR_MAGNETOMETER (user_data);
+	SSCSensorMagnetometerPrivate *priv = NULL;
+	SSCClient *client = NULL;
+
+	priv = ssc_sensor_magnetometer_get_instance_private (self);
+	g_warn_if_fail (priv->context);
+
+	/*
+	 * Create main loop with context to receive QMI indications.
+	 * The loop will be quited in close_sync when the thread should exit.
+	 * Once quited, disconnect signal handler.
+	 */
+	g_main_context_push_thread_default (priv->context);
+
+	priv->loop = g_main_loop_new (priv->context, TRUE);
+	g_main_loop_run (priv->loop);
+
+	g_object_get (SSC_SENSOR (self),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	g_signal_handler_disconnect (client, priv->report_id);
+
+	g_main_context_pop_thread_default (priv->context);
+
+	return NULL;
+}
+
+static void
+report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
+{
+	SscMagnetometerResponse *msg = NULL;
+	SSCSensorMagnetometer *sensor = SSC_SENSOR_MAGNETOMETER (user_data);
+	guint64 sensor_uid_low;
+	guint64 sensor_uid_high;
+	gfloat x;
+	gfloat y;
+	gfloat z;
+
+	g_object_get (sensor,
+		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
+		      SSC_SENSOR_UID_LOW, &sensor_uid_low,
+		      NULL);
+
+	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT_MAGNETOMETER) {
+		msg = ssc_magnetometer_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+
+		if (msg->n_magnetic_field >= 3) {
+			x = msg->magnetic_field[0];
+			y = msg->magnetic_field[1];
+			z = msg->magnetic_field[2];
+
+			g_debug ("Magnetometer sensor measurement: X=%f Y=%f Z=%f μT", x, y, z);
+			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, x, y, z); 
+		}
+
+		ssc_magnetometer_response__free_unpacked (msg, NULL);
+	}
+}
 
 /*****************************************************************************/
 
@@ -67,6 +147,34 @@ ssc_sensor_magnetometer_close (SSCSensorMagnetometer *self, GCancellable *cancel
 	task = g_task_new (self, cancellable, callback, user_data);
 
 	SSC_SENSOR_CLASS (ssc_sensor_magnetometer_parent_class)->close (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)magnetometer_close_ready, task);
+}
+
+gboolean
+ssc_sensor_magnetometer_close_sync (SSCSensorMagnetometer *self, GCancellable *cancellable, GError **error)
+{
+	SSCSensorMagnetometerPrivate *priv = NULL;
+	gboolean success = FALSE;
+	SyncContext ctx;
+
+	priv = ssc_sensor_magnetometer_get_instance_private (self);
+	g_warn_if_fail (priv->loop);
+	g_warn_if_fail (priv->thread);
+
+	/* Stop report context thread before re-acquiring our context */
+	g_main_loop_quit (priv->loop);
+	g_thread_join (priv->thread);
+
+	/* Take over context and close sensor */
+	g_main_context_push_thread_default (priv->context);
+	ctx.loop = g_main_loop_new (priv->context, TRUE);
+
+	ssc_sensor_magnetometer_close (self, cancellable, sync_cb, &ctx);
+	g_main_loop_run (ctx.loop);
+	success = ssc_sensor_magnetometer_close_finish (self, ctx.result, error);
+
+	g_main_context_pop_thread_default (priv->context);
+
+	return success;
 }
 
 /*****************************************************************************/
@@ -106,38 +214,29 @@ ssc_sensor_magnetometer_open (SSCSensorMagnetometer *self, GCancellable *cancell
 	SSC_SENSOR_CLASS (ssc_sensor_magnetometer_parent_class)->open (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)magnetometer_open_ready, task);
 }
 
-/*****************************************************************************/
-
-static void
-report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
+gboolean
+ssc_sensor_magnetometer_open_sync (SSCSensorMagnetometer *self, GCancellable *cancellable, GError **error)
 {
-	SscMagnetometerResponse *msg = NULL;
-	SSCSensorMagnetometer *sensor = SSC_SENSOR_MAGNETOMETER (user_data);
-	guint64 sensor_uid_low;
-	guint64 sensor_uid_high;
-	gfloat x;
-	gfloat y;
-	gfloat z;
+	SSCSensorMagnetometerPrivate *priv = NULL;
+	SyncContext ctx;
+	gboolean success = FALSE;
 
-	g_object_get (sensor,
-		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
-		      SSC_SENSOR_UID_LOW, &sensor_uid_low,
-		      NULL);
+	priv = ssc_sensor_magnetometer_get_instance_private (self);
 
-	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT_MAGNETOMETER) {
-		msg = ssc_magnetometer_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+	/* Open sensor in our context */
+	g_main_context_push_thread_default (priv->context);
+	ctx.loop = g_main_loop_new (priv->context, TRUE);
 
-		if (msg->n_magnetic_field >= 3) {
-			x = msg->magnetic_field[0];
-			y = msg->magnetic_field[1];
-			z = msg->magnetic_field[2];
+	ssc_sensor_magnetometer_open (self, cancellable, sync_cb, &ctx);
+	g_main_loop_run (ctx.loop);
+	success = ssc_sensor_magnetometer_open_finish (self, ctx.result, error);
 
-			g_debug ("Magnetometer sensor measurement: X=%f Y=%f Z=%f μT", x, y, z);
-			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, x, y, z); 
-		}
+	/* Start report thread to watch for incoming measurements over QMI indications */
+	priv->thread = g_thread_new ("report-receiver-magnetometer", report_receiver_thread, self);
 
-		ssc_magnetometer_response__free_unpacked (msg, NULL);
-	}
+	g_main_context_pop_thread_default (priv->context);
+
+	return success;
 }
 
 /*****************************************************************************/
@@ -201,4 +300,31 @@ ssc_sensor_magnetometer_new (GFile *file, GCancellable *cancellable, GAsyncReady
 			SSC_SENSOR_DATA_TYPE, "mag",
 			SSC_CLIENT_FILE_PATH, file,
 			NULL);
+}
+
+SSCSensorMagnetometer *
+ssc_sensor_magnetometer_new_sync (GFile *file, GCancellable *cancellable, GError **error)
+{
+	SSCSensorMagnetometer *self = NULL;
+	SSCSensorMagnetometerPrivate *priv = NULL;
+	SyncContext ctx;
+	GMainContext *context = NULL;
+
+	/* Initiate context for this sensor in library */
+	context = g_main_context_new ();
+	g_main_context_push_thread_default (context);
+	ctx.loop = g_main_loop_new (context, TRUE);
+
+	/* Create sensor */
+	ssc_sensor_magnetometer_new (file, cancellable, sync_cb, &ctx);
+	g_main_loop_run (ctx.loop);
+	self = ssc_sensor_magnetometer_new_finish (ctx.result, error);
+
+	g_main_context_pop_thread_default (context);
+
+	/* Keep context for future calls to avoid interference with default context */
+	priv = ssc_sensor_magnetometer_get_instance_private (self);
+	priv->context = g_main_context_ref (context);
+
+	return self;
 }
