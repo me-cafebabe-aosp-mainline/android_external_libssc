@@ -19,285 +19,95 @@
 #include "libssc-cli.h"
 
 #define ENABLE_SECONDS 3
-
-static void
-magnetometer_close_ready (SSCSensorMagnetometer *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_magnetometer_close_finish (sensor, result, &error)) {
-		g_warning ("Failed to close magnetometer sensor");
-		return;
-	}
-
-	g_debug ("Magnetometer sensor disabled");
-
-	exit(0);
-}
+#define GENERAL_FAIL_EXIT_CODE -1
+#define INIT_FAIL_EXIT_CODE -2
+#define OPEN_FAIL_EXIT_CODE -3
+#define CLOSE_FAIL_EXIT_CODE -4
 
 static gboolean
 magnetometer_close_cb (SSCSensorMagnetometer *self)
 {
-	ssc_sensor_magnetometer_close (self, NULL, (GAsyncReadyCallback)magnetometer_close_ready, NULL);
+	g_autoptr (GError) err = NULL;
+
+	if (!ssc_sensor_magnetometer_close_sync (self, NULL, &err)) {
+		g_warning ("Unable to close magnetometer sensor: %s", err ? err->message : "NULL");
+	}
+
+	g_debug ("Magnetometer sensor disabled");
+	exit(0);
 
 	return G_SOURCE_REMOVE;
 }
 
 static void magnetometer_measurement (SSCSensorMagnetometer *sensor, gfloat magnetic_field_x, gfloat magnetic_field_y, gfloat magnetic_field_z, gpointer user_data)
 {
-	g_printf ("Magnetometer measurement: X=%f Y=%f Z=%f μT\n", magnetic_field_x, magnetic_field_y, magnetic_field_z);
-}
-
-static void
-magnetometer_open_ready (SSCSensorMagnetometer *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_magnetometer_open_finish (sensor, result, &error)) {
-		g_warning ("Failed to open magnetometer sensor");
-		return;
-	}
-
-	g_debug ("Magnetometer sensor enabled");
-	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)magnetometer_close_cb, sensor);
-}
-
-static void
-magnetometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-	SSCSensorMagnetometer *sensor = NULL;
-
-	sensor = ssc_sensor_magnetometer_new_finish (result, &error);
-
-	if (!sensor) {
-		g_printf ("Magnetometer sensor is unavailable\n");
-		exit(1);
-	}
-
-	g_signal_connect (SSC_SENSOR_MAGNETOMETER (sensor),
-			  "measurement",
-			  G_CALLBACK (magnetometer_measurement),
-			  NULL);
-
-	g_debug ("Magnetometer sensor enabling");
-	ssc_sensor_magnetometer_open (sensor, NULL, (GAsyncReadyCallback)magnetometer_open_ready, NULL);
+	g_printf ("Magnetometer sensor measurement: X=%f Y=%f Z=%f μT\n", magnetic_field_x, magnetic_field_y, magnetic_field_z);
 }
 
 /*****************************************************************************/
 
-static void
-accelerometer_close_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_accelerometer_close_finish (sensor, result, &error)) {
-		g_warning ("Failed to close accelerometer sensor");
-		return;
-	}
-
-	g_debug ("Accelerometer sensor disabled");
-
-	exit(0);
-}
-
 static gboolean
 accelerometer_close_cb (SSCSensorAccelerometer *self)
 {
-	ssc_sensor_accelerometer_close (self, NULL, (GAsyncReadyCallback)accelerometer_close_ready, NULL);
+	g_autoptr (GError) err = NULL;
+
+	if (!ssc_sensor_accelerometer_close_sync (self, NULL, &err)) {
+		g_warning ("Unable to close accelerometer sensor: %s", err ? err->message : "NULL");
+	}
+
+	g_debug ("Accelerometer sensor disabled");
+	exit(0);
 
 	return G_SOURCE_REMOVE;
 }
 
 static void accelerometer_measurement (SSCSensorAccelerometer *sensor, gfloat accel_x, gfloat accel_y, gfloat accel_z, gpointer user_data)
 {
-	g_printf ("Accelerometer measurement: X=%f Y=%f Z=%f m/s²\n", accel_x, accel_y, accel_z);
-}
-
-static void
-accelerometer_open_ready (SSCSensorAccelerometer *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_accelerometer_open_finish (sensor, result, &error)) {
-		g_warning ("Failed to open accelerometer sensor");
-		return;
-	}
-
-	g_debug ("Accelerometer sensor enabled");
-	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)accelerometer_close_cb, sensor);
-}
-
-static void
-accelerometer_ready (GFile *self, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-	SSCSensorAccelerometer *sensor = NULL;
-
-	sensor = ssc_sensor_accelerometer_new_finish (result, &error);
-
-	if (!sensor) {
-		g_printf ("Accelerometer sensor is unavailable\n");
-		exit(1);
-	}
-
-	g_signal_connect (SSC_SENSOR_ACCELEROMETER (sensor),
-			  "measurement",
-			  G_CALLBACK (accelerometer_measurement),
-			  NULL);
-
-	g_debug ("Accelerometer sensor enabling");
-	ssc_sensor_accelerometer_open (sensor, NULL, (GAsyncReadyCallback)accelerometer_open_ready, NULL);
+	g_printf ("Accelerometer sensor measurement: X=%f Y=%f Z=%f m/s²\n", accel_x, accel_y, accel_z);
 }
 
 /*****************************************************************************/
 
-static void
-light_close_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_light_close_finish (sensor, result, &error)) {
-		g_warning ("Failed to close light sensor");
-		return;
-	}
-
-	g_debug ("Light sensor disabled");
-
-	exit(0);
-}
-
 static gboolean
 light_close_cb (SSCSensorLight *self)
 {
-	ssc_sensor_light_close (self, NULL, (GAsyncReadyCallback)light_close_ready, NULL);
+	g_autoptr (GError) err = NULL;
+
+	if (!ssc_sensor_light_close_sync (self, NULL, &err)) {
+		g_warning ("Unable to close light sensor: %s", err ? err->message : "NULL");
+	}
+
+	g_debug ("Light sensor disabled");
+	exit(0);
 
 	return G_SOURCE_REMOVE;
 }
 
 static void light_measurement (SSCSensorLight *sensor, gfloat intensity, gpointer user_data)
 {
-	g_printf ("Light measurement: %f Lux\n", intensity);
-}
-
-static void
-light_open_ready (SSCSensorLight *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_light_open_finish (sensor, result, &error)) {
-		g_warning ("Failed to open light sensor");
-		return;
-	}
-
-	g_debug ("Light sensor enabled");
-	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)light_close_cb, sensor);
-}
-
-static void
-light_ready (GFile *self, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-	SSCSensorLight *sensor = NULL;
-
-	sensor = ssc_sensor_light_new_finish (result, &error);
-
-	if (!sensor) {
-		g_printf ("Light sensor is unavailable\n");
-		exit(1);
-	}
-
-	g_signal_connect (SSC_SENSOR_LIGHT (sensor),
-			  "measurement",
-			  G_CALLBACK (light_measurement),
-			  NULL);
-
-	g_debug ("Light sensor enabling");
-	ssc_sensor_light_open (sensor, NULL, (GAsyncReadyCallback)light_open_ready, NULL);
+	g_printf ("Light sensor measurement: %f Lux\n", intensity);
 }
 
 /*****************************************************************************/
 
-static void
-proximity_close_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_proximity_close_finish (sensor, result, &error)) {
-		g_warning ("Failed to close proximity sensor");
-		return;
-	}
-
-	g_debug ("Proximity sensor disabled");
-
-	exit(0);
-}
-
-static gboolean
-proximity_close_cb2 (SSCSensorProximity *self)
-{
-	g_autoptr (GError) err = NULL;
-
-	g_debug ("proximity_close_cb2");
-
-	if (!ssc_sensor_proximity_close_sync (self, NULL, &err)) {
-		g_warning ("Unable to close sensor: %s", err ? err->message : "NULL");
-	}
-
-	g_debug ("PROX disabled");
-	exit(0);
-
-	return G_SOURCE_REMOVE;
-}
-
 static gboolean
 proximity_close_cb (SSCSensorProximity *self)
 {
-	ssc_sensor_proximity_close (self, NULL, (GAsyncReadyCallback)proximity_close_ready, NULL);
+	g_autoptr (GError) err = NULL;
+
+	if (!ssc_sensor_proximity_close_sync (self, NULL, &err)) {
+		g_warning ("Unable to close proximity sensor: %s", err ? err->message : "NULL");
+	}
+
+	g_debug ("Proximity sensor disabled");
+	exit(0);
 
 	return G_SOURCE_REMOVE;
 }
 
 static void proximity_measurement (SSCSensorProximity *sensor, gboolean near, gpointer user_data)
 {
-	g_printf ("Proximity measurement: %s\n", near ? "NEAR" : "FAR");
-}
-
-
-static void
-proximity_open_ready (SSCSensorProximity *sensor, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-
-	if (!ssc_sensor_proximity_open_finish (sensor, result, &error)) {
-		g_warning ("Failed to open proximity sensor");
-		return;
-	}
-
-	g_debug ("Proximity sensor enabled");
-	g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)proximity_close_cb, sensor);
-}
-
-static void
-proximity_ready (GFile *self, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-	SSCSensorProximity *sensor = NULL;
-
-	sensor = ssc_sensor_proximity_new_finish (result, &error);
-
-	if (!sensor) {
-		g_printf ("Proximity sensor is unavailable\n");
-		exit(1);
-	}
-
-	g_signal_connect (SSC_SENSOR_PROXIMITY (sensor),
-			  "measurement",
-			  G_CALLBACK (proximity_measurement),
-			  NULL);
-
-	g_debug ("Proximity sensor enabling");
-	ssc_sensor_proximity_open (sensor, NULL, (GAsyncReadyCallback)proximity_open_ready, NULL);
+	g_printf ("Proximity sensor measurement: %s\n", near ? "NEAR" : "FAR");
 }
 
 /*****************************************************************************/
@@ -324,7 +134,7 @@ int main(int argc, char *argv[])
 	g_option_context_add_main_entries (opt_context, options, NULL);
 	if (!g_option_context_parse (opt_context, &argc, &argv, &err)) {
 		g_warning ("Parsing CLI options failed: %s", err->message);
-		return -1;
+		return GENERAL_FAIL_EXIT_CODE;
 	}
 
 	/* Print version and exit */
@@ -349,30 +159,68 @@ int main(int argc, char *argv[])
 	g_debug ("QMI device: %s", cli.device_str);
 
 	if (g_strcmp0 (sensor_str, "proximity") == 0) {
-		//ssc_sensor_proximity_new (file, NULL, (GAsyncReadyCallback)proximity_ready, NULL);
-		SSCSensorProximity *prox = ssc_sensor_proximity_new_sync (file, NULL, &err);
-		if (!prox) {
-			g_warning ("Unable to initialize sensor: %s", err ? err->message : "NULL");
-			return -2;
+		SSCSensorProximity *proximity = ssc_sensor_proximity_new_sync (file, NULL, &err);
+		if (!proximity) {
+			g_warning ("Unable to initialize proximity sensor: %s", err ? err->message : "NULL");
+			return INIT_FAIL_EXIT_CODE;
 		}
-		g_signal_connect (prox,
+		g_signal_connect (proximity,
 			  	  "measurement",
 			  	  G_CALLBACK (proximity_measurement),
 			  	  NULL);
-		if (!ssc_sensor_proximity_open_sync (prox, NULL, &err)) {
-			g_warning ("Unable to open sensor: %s", err ? err->message : "UNKNOWN");
-			return -3;
+		if (!ssc_sensor_proximity_open_sync (proximity, NULL, &err)) {
+			g_warning ("Unable to open proximity sensor: %s", err ? err->message : "UNKNOWN");
+			return OPEN_FAIL_EXIT_CODE;
 		}
-		g_timeout_add_seconds (5, (GSourceFunc)proximity_close_cb2, prox);
-	} else if (g_strcmp0 (sensor_str, "light") == 0)
-		ssc_sensor_light_new (file, NULL, (GAsyncReadyCallback)light_ready, NULL);
-	else if (g_strcmp0 (sensor_str, "accelerometer") == 0)
-		ssc_sensor_accelerometer_new (file, NULL, (GAsyncReadyCallback)accelerometer_ready, NULL);
-	else if (g_strcmp0 (sensor_str, "magnetometer") == 0)
-		ssc_sensor_magnetometer_new (file, NULL, (GAsyncReadyCallback)magnetometer_ready, NULL);
-	else {
+		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)proximity_close_cb, proximity);
+	} else if (g_strcmp0 (sensor_str, "light") == 0) {
+		SSCSensorLight *light = ssc_sensor_light_new_sync (file, NULL, &err);
+		if (!light) {
+			g_warning ("Unable to initialize light sensor: %s", err ? err->message : "NULL");
+			return INIT_FAIL_EXIT_CODE;
+		}
+		g_signal_connect (light,
+			  	  "measurement",
+			  	  G_CALLBACK (light_measurement),
+			  	  NULL);
+		if (!ssc_sensor_light_open_sync (light, NULL, &err)) {
+			g_warning ("Unable to open light sensor: %s", err ? err->message : "UNKNOWN");
+			return OPEN_FAIL_EXIT_CODE;
+		}
+		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)light_close_cb, light);
+	} else if (g_strcmp0 (sensor_str, "accelerometer") == 0) {
+		SSCSensorAccelerometer *accelerometer = ssc_sensor_accelerometer_new_sync (file, NULL, &err);
+		if (!accelerometer) {
+			g_warning ("Unable to initialize accelerometer sensor: %s", err ? err->message : "NULL");
+			return INIT_FAIL_EXIT_CODE;
+		}
+		g_signal_connect (accelerometer,
+			  	  "measurement",
+			  	  G_CALLBACK (accelerometer_measurement),
+			  	  NULL);
+		if (!ssc_sensor_accelerometer_open_sync (accelerometer, NULL, &err)) {
+			g_warning ("Unable to open accelerometer sensor: %s", err ? err->message : "UNKNOWN");
+			return OPEN_FAIL_EXIT_CODE;
+		}
+		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)accelerometer_close_cb, accelerometer);
+	} else if (g_strcmp0 (sensor_str, "magnetometer") == 0) {
+		SSCSensorMagnetometer *magnetometer = ssc_sensor_magnetometer_new_sync (file, NULL, &err);
+		if (!magnetometer) {
+			g_warning ("Unable to initialize magnetometer sensor: %s", err ? err->message : "NULL");
+			return INIT_FAIL_EXIT_CODE;
+		}
+		g_signal_connect (magnetometer,
+			  	  "measurement",
+			  	  G_CALLBACK (magnetometer_measurement),
+			  	  NULL);
+		if (!ssc_sensor_magnetometer_open_sync (magnetometer, NULL, &err)) {
+			g_warning ("Unable to open magnetometer sensor: %s", err ? err->message : "UNKNOWN");
+			return OPEN_FAIL_EXIT_CODE;
+		}
+		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)magnetometer_close_cb, magnetometer);
+	} else {
 		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer'\n");
-		return 1;
+		return GENERAL_FAIL_EXIT_CODE;
 	}
 
 	/* Start GLib main loop */
