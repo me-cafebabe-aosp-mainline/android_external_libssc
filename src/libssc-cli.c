@@ -39,7 +39,7 @@ magnetometer_close_cb (SSCSensorMagnetometer *self)
 	return G_SOURCE_REMOVE;
 }
 
-static void magnetometer_measurement (SSCSensorMagnetometer *sensor, gfloat magnetic_field_x, gfloat magnetic_field_y, gfloat magnetic_field_z, gpointer user_data)
+static void magnetometer_measurement (SSCSensorMagnetometer *sensor, gdouble magnetic_field_x, gdouble magnetic_field_y, gdouble magnetic_field_z, gpointer user_data)
 {
 	g_printf ("Magnetometer sensor measurement: X=%f Y=%f Z=%f μT\n", magnetic_field_x, magnetic_field_y, magnetic_field_z);
 }
@@ -61,7 +61,7 @@ accelerometer_close_cb (SSCSensorAccelerometer *self)
 	return G_SOURCE_REMOVE;
 }
 
-static void accelerometer_measurement (SSCSensorAccelerometer *sensor, gfloat accel_x, gfloat accel_y, gfloat accel_z, gpointer user_data)
+static void accelerometer_measurement (SSCSensorAccelerometer *sensor, gdouble accel_x, gdouble accel_y, gdouble accel_z, gpointer user_data)
 {
 	g_printf ("Accelerometer sensor measurement: X=%f Y=%f Z=%f m/s²\n", accel_x, accel_y, accel_z);
 }
@@ -83,7 +83,7 @@ light_close_cb (SSCSensorLight *self)
 	return G_SOURCE_REMOVE;
 }
 
-static void light_measurement (SSCSensorLight *sensor, gfloat intensity, gpointer user_data)
+static void light_measurement (SSCSensorLight *sensor, gdouble intensity, gpointer user_data)
 {
 	g_printf ("Light sensor measurement: %f Lux\n", intensity);
 }

@@ -87,9 +87,9 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	SSCSensorMagnetometer *sensor = SSC_SENSOR_MAGNETOMETER (user_data);
 	guint64 sensor_uid_low;
 	guint64 sensor_uid_high;
-	gfloat x;
-	gfloat y;
-	gfloat z;
+	gdouble x;
+	gdouble y;
+	gdouble z;
 
 	g_object_get (sensor,
 		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
