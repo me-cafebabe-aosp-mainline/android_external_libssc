@@ -35,9 +35,9 @@ typedef struct _SSCSensorMagnetometer {
 
 G_DECLARE_FINAL_TYPE (SSCSensorMagnetometer, ssc_sensor_magnetometer, SSC, SENSOR_MAGNETOMETER, SSCSensor);
 
-void		 	 ssc_sensor_magnetometer_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+void		 	 ssc_sensor_magnetometer_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 SSCSensorMagnetometer 	*ssc_sensor_magnetometer_new_finish (GAsyncResult *result, GError **error);
-SSCSensorMagnetometer      *ssc_sensor_magnetometer_new_sync (GFile *file, GCancellable *cancellable, GError **error);
+SSCSensorMagnetometer      *ssc_sensor_magnetometer_new_sync (GCancellable *cancellable, GError **error);
 void			 ssc_sensor_magnetometer_open (SSCSensorMagnetometer *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_magnetometer_open_finish (SSCSensorMagnetometer *self, GAsyncResult *result, GError **error);
 gboolean                 ssc_sensor_magnetometer_open_sync (SSCSensorMagnetometer *self, GCancellable *cancellable, GError **error);

@@ -51,7 +51,6 @@ typedef struct _SSCSensorPrivate {
 	SSCClient *client;
 	guint report_id;
 	gboolean attr_populated;
-	GFile *file;
 } SSCSensorPrivate;
 
 static void async_initable_iface_init (GAsyncInitableIface *iface);
@@ -493,15 +492,11 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 {
 	GTask *task = NULL;
 	SSCSensor *self = NULL;
-	g_autoptr (GFile) file = NULL;
 
 	self = SSC_SENSOR (initable);
 	task = g_task_new (self, cancellable, callback, user_data);
 
-	g_object_get (self,
-		      SSC_CLIENT_FILE_PATH, &file,
-		      NULL);
-	ssc_client_new (file, NULL, (GAsyncReadyCallback)client_ready, task);
+	ssc_client_new (NULL, (GAsyncReadyCallback)client_ready, task);
 }
 
 static gboolean
@@ -536,9 +531,6 @@ sensor_set_property (GObject *object, guint prop_id, const GValue *value, GParam
 			break;
 		case PROP_CLIENT:
 			priv->client = g_value_dup_object (value);
-			break;
-		case PROP_FILE:
-			priv->file = g_value_dup_object (value);
 			break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -580,9 +572,6 @@ sensor_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *
 		case PROP_CLIENT:
 			g_value_set_object (value, priv->client);
 			break;
-		case PROP_FILE:
-			g_value_set_object (value, priv->file);
-			break;
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			break;
@@ -599,7 +588,6 @@ sensor_dispose (GObject *object)
 	g_free (&priv->vendor);
 	g_free (&priv->data_type);
 	g_clear_object (&priv->client);
-	g_clear_object (&priv->file);
 }
 
 static void
@@ -692,14 +680,6 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     SSC_TYPE_CLIENT,
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 	g_object_class_install_property (object_class, PROP_CLIENT, properties[PROP_CLIENT]);
-
-	properties[PROP_FILE] =
-		g_param_spec_object (SSC_CLIENT_FILE_PATH,
-				     "Device file",
-				     "File to the underlying device",
-				     G_TYPE_FILE,
-				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-	g_object_class_install_property (object_class, PROP_FILE, properties[PROP_FILE]);
 }
 
 static void
@@ -724,7 +704,7 @@ ssc_sensor_new_finish (GAsyncResult *result, GError **error)
 }
 
 void
-ssc_sensor_new (GFile *file, gchar *data_type, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+ssc_sensor_new (gchar *data_type, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
 	g_async_initable_new_async (
 			SSC_TYPE_SENSOR,
@@ -733,6 +713,5 @@ ssc_sensor_new (GFile *file, gchar *data_type, GCancellable *cancellable, GAsync
 			callback,
 			user_data,
 			SSC_SENSOR_DATA_TYPE, data_type,
-			SSC_CLIENT_FILE_PATH, file,
 			NULL);
 }

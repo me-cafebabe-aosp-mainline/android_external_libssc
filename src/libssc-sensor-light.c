@@ -285,7 +285,7 @@ ssc_sensor_light_new_finish (GAsyncResult *result, GError **error)
 }
 
 void
-ssc_sensor_light_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+ssc_sensor_light_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
 	g_async_initable_new_async (
 			SSC_TYPE_SENSOR_LIGHT,
@@ -294,12 +294,11 @@ ssc_sensor_light_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallbac
 			callback,
 			user_data,
 			SSC_SENSOR_DATA_TYPE, "ambient_light",
-			SSC_CLIENT_FILE_PATH, file,
 			NULL);
 }
 
 SSCSensorLight *
-ssc_sensor_light_new_sync (GFile *file, GCancellable *cancellable, GError **error)
+ssc_sensor_light_new_sync (GCancellable *cancellable, GError **error)
 {
 	SSCSensorLight *self = NULL;
 	SSCSensorLightPrivate *priv = NULL;
@@ -312,7 +311,7 @@ ssc_sensor_light_new_sync (GFile *file, GCancellable *cancellable, GError **erro
 	ctx.loop = g_main_loop_new (context, TRUE);
 
 	/* Create sensor */
-	ssc_sensor_light_new (file, cancellable, sync_cb, &ctx);
+	ssc_sensor_light_new (cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	self = ssc_sensor_light_new_finish (ctx.result, error);
 

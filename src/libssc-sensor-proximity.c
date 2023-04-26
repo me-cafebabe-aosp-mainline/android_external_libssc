@@ -297,7 +297,7 @@ ssc_sensor_proximity_new_finish (GAsyncResult *result, GError **error)
 }
 
 void
-ssc_sensor_proximity_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+ssc_sensor_proximity_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
 	g_async_initable_new_async (
 			SSC_TYPE_SENSOR_PROXIMITY,
@@ -306,12 +306,11 @@ ssc_sensor_proximity_new (GFile *file, GCancellable *cancellable, GAsyncReadyCal
 			callback,
 			user_data,
 			SSC_SENSOR_DATA_TYPE, "proximity",
-			SSC_CLIENT_FILE_PATH, file,
 			NULL);
 }
 
 SSCSensorProximity *
-ssc_sensor_proximity_new_sync (GFile *file, GCancellable *cancellable, GError **error)
+ssc_sensor_proximity_new_sync (GCancellable *cancellable, GError **error)
 {
 	SSCSensorProximity *self = NULL;
 	SSCSensorProximityPrivate *priv = NULL;
@@ -324,7 +323,7 @@ ssc_sensor_proximity_new_sync (GFile *file, GCancellable *cancellable, GError **
 	ctx.loop = g_main_loop_new (context, TRUE);
 
 	/* Create sensor */
-	ssc_sensor_proximity_new (file, cancellable, sync_cb, &ctx);
+	ssc_sensor_proximity_new (cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	self = ssc_sensor_proximity_new_finish (ctx.result, error);
 

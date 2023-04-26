@@ -29,10 +29,8 @@ enum {
 	PROP_FILE = 1,
 	N_PROPERTIES
 };
-static GParamSpec *properties[N_PROPERTIES];
 
 typedef struct _SSCClientPrivate {
-	GFile *file;
 	QmiDevice *device;
 	QmiClientSsc *qmi_client_ssc;
 	QrtrBus *bus;
@@ -328,10 +326,11 @@ static void
 bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
-	QrtrNode *node;
+	QrtrNode *node = NULL;
 	GTask *task = NULL;
 	SSCClient *client = NULL;
 	SSCClientPrivate *priv = NULL;
+	gboolean found = FALSE;
 
 	task = G_TASK (user_data);
 	client = g_task_get_task_data (task);
@@ -344,8 +343,17 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 		return;
 	}
 
-	node = qrtr_bus_peek_node (priv->bus, priv->node_id);
-	if (!node) {
+	/* Find QRTR node for SSC service */
+	for (GList *l = qrtr_bus_get_nodes (priv->bus); l != NULL; l = l->next) {
+		node = l->data;
+
+		if (node && qrtr_node_lookup_port (node, QMI_SERVICE_SSC) >= 0) {
+			found = TRUE;
+			break;
+		}
+	}
+
+	if (!found) {
 		/*g_task_return_new_error (task,
 					 LIBSSC_ERROR,
 					 LIBSSC_ERROR_QRTR,
@@ -355,7 +363,7 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 		return;
 	}
 
-	g_debug("QRTR node ready");
+	g_debug("QRTR node discovered for SSC service");
 
 	/* QRTR node ready, create QMI device */
 	qmi_device_new_from_node (node,
@@ -379,7 +387,6 @@ ssc_client_dispose (GObject *object)
 
 	g_clear_object (&priv->qmi_client_ssc);
 	g_clear_object (&priv->device);
-	g_clear_object (&priv->file);
 
 	G_OBJECT_CLASS (ssc_client_parent_class)->dispose (object);
 }
@@ -390,40 +397,25 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 #if QMI_QRTR_SUPPORTED
 	{
 		GTask *task = NULL;
-		GFile *file = NULL;
 		SSCClient *self = NULL;
-		SSCClientPrivate *priv = NULL;
 		g_autofree gchar *id = NULL;
 
 		self = SSC_CLIENT (initable);
-		priv = ssc_client_get_instance_private (self);
-
-		/* Retrieve QRTR node path */
-		g_object_get (self,
-			SSC_CLIENT_FILE_PATH, &file,
-			NULL);
 
 		task = g_task_new (self, cancellable, callback, user_data);
 		g_task_set_task_data (task, self, NULL);
 
-		/* Open node on QRTR bus */
-		id = g_file_get_uri (file);
-		if (qrtr_get_node_for_uri (id, &priv->node_id)) {
-			g_debug("Opening node ID %" G_GUINT32_FORMAT " on QRTR bus", priv->node_id);
-			qrtr_bus_new (1000, /* ms */
-				NULL,
-				(GAsyncReadyCallback)bus_new_ready,
-				task);
-
-			return;
-		}
+		/* Open right node on QRTR bus */
+		qrtr_bus_new (1000, /* ms */
+			      NULL,
+			      (GAsyncReadyCallback)bus_new_ready,
+			      task);
 
 		/*g_task_return_new_error (task,
 					 LIBSSC_ERROR,
 					 LIBSSC_ERROR_QRTR,
 					 "Device URI is not a QRTR node: %s",
 					 id);*/
-		g_clear_object (&task);
 		return;
 	}
 # else
@@ -447,42 +439,6 @@ async_initable_iface_init (GAsyncInitableIface *iface)
 {
 	iface->init_async = initable_init_async;
 	iface->init_finish = initable_init_finish;
-}
-
-static void
-set_property (GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
-{
-	SSCClient *self = SSC_CLIENT (object);
-	SSCClientPrivate *priv = NULL;
-
-	priv = ssc_client_get_instance_private (self);
-
-	switch (prop_id) {
-		case PROP_FILE:
-			priv->file = g_value_dup_object (value);
-			break;
-		default:
-			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-			break;
-	}
-}
-
-static void
-get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
-{
-	SSCClient *self = SSC_CLIENT (object);
-	SSCClientPrivate *priv = NULL;
-
-	priv = ssc_client_get_instance_private (self);
-
-	switch (prop_id) {
-		case PROP_FILE:
-			g_value_set_object (value, priv->file);
-			break;
-		default:
-			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-			break;
-	}
 }
 
 static GObject*
@@ -509,8 +465,6 @@ ssc_client_class_init (SSCClientClass *klass)
 	/* Virtual methods */
 	object_class->constructor = ssc_client_constructor;
 	object_class->dispose = ssc_client_dispose;
-	object_class->set_property = set_property;
-	object_class->get_property = get_property;
 
 	/* Signals */
 	signals[SIGNAL_REPORT] = g_signal_new ("report",
@@ -525,14 +479,6 @@ ssc_client_class_init (SSCClientClass *klass)
 		0, NULL, NULL, NULL,
 		G_TYPE_NONE,
 		1, SSC_TYPE_SENSOR);
-
-	/* Properties */
-	properties[PROP_FILE] = g_param_spec_object (SSC_CLIENT_FILE_PATH,
-			"Device file",
-			"File to the underlying device",
-			G_TYPE_FILE,
-			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-	g_object_class_install_property (object_class, PROP_FILE, properties[PROP_FILE]);
 }
 
 SSCClient *
@@ -552,16 +498,13 @@ ssc_client_new_finish (GAsyncResult *result, GError **error)
 }
 
 void
-ssc_client_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+ssc_client_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
-	g_return_if_fail (G_IS_FILE (file));
-
 	g_async_initable_new_async (
 		SSC_TYPE_CLIENT,
 		G_PRIORITY_DEFAULT,
 		cancellable,
 		callback,
 		user_data,
-		SSC_CLIENT_FILE_PATH, file,
 		NULL);
 }

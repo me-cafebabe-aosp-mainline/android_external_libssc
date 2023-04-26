@@ -116,15 +116,12 @@ int main(int argc, char *argv[])
 {
 	g_autoptr(GOptionContext) opt_context = NULL;
 	GError *err = NULL;
-	GFile *file = NULL;
-	g_autofree gchar *device_str = "qrtr://0";
 	SSCCli cli;
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
 	g_autofree gchar *sensor_str = "";
 	const GOptionEntry options[] = {
 		{ "version", 0, 0, G_OPTION_ARG_NONE, &print_version, "Print version information and exit.", NULL },
-		{ "device", 0, 0, G_OPTION_ARG_STRING, &device_str, "QMI device to use, default 'qrtr://0'.", NULL },
 		{ "debug", 'v', 0, G_OPTION_ARG_NONE, &debug, "Enable debug logs.", NULL },
 		{ "sensor", 0, 0, G_OPTION_ARG_STRING, &sensor_str, "Enable a sensor. Supported sensors: 'proximity', 'light', 'accelerometer', 'magnetometer'", NULL },
 		{ NULL, 0, 0, G_OPTION_ARG_NONE, NULL, NULL, NULL }
@@ -153,13 +150,8 @@ int main(int argc, char *argv[])
 		g_debug ("Debug messages enabled");
 	}
 
-	/* Read QMI device node */
-	cli.device_str = g_strdup(device_str);
-	file = g_file_new_for_commandline_arg (cli.device_str);
-	g_debug ("QMI device: %s", cli.device_str);
-
 	if (g_strcmp0 (sensor_str, "proximity") == 0) {
-		SSCSensorProximity *proximity = ssc_sensor_proximity_new_sync (file, NULL, &err);
+		SSCSensorProximity *proximity = ssc_sensor_proximity_new_sync (NULL, &err);
 		if (!proximity) {
 			g_warning ("Unable to initialize proximity sensor: %s", err ? err->message : "NULL");
 			return INIT_FAIL_EXIT_CODE;
@@ -174,7 +166,7 @@ int main(int argc, char *argv[])
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)proximity_close_cb, proximity);
 	} else if (g_strcmp0 (sensor_str, "light") == 0) {
-		SSCSensorLight *light = ssc_sensor_light_new_sync (file, NULL, &err);
+		SSCSensorLight *light = ssc_sensor_light_new_sync (NULL, &err);
 		if (!light) {
 			g_warning ("Unable to initialize light sensor: %s", err ? err->message : "NULL");
 			return INIT_FAIL_EXIT_CODE;
@@ -189,7 +181,7 @@ int main(int argc, char *argv[])
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)light_close_cb, light);
 	} else if (g_strcmp0 (sensor_str, "accelerometer") == 0) {
-		SSCSensorAccelerometer *accelerometer = ssc_sensor_accelerometer_new_sync (file, NULL, &err);
+		SSCSensorAccelerometer *accelerometer = ssc_sensor_accelerometer_new_sync (NULL, &err);
 		if (!accelerometer) {
 			g_warning ("Unable to initialize accelerometer sensor: %s", err ? err->message : "NULL");
 			return INIT_FAIL_EXIT_CODE;
@@ -204,7 +196,7 @@ int main(int argc, char *argv[])
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)accelerometer_close_cb, accelerometer);
 	} else if (g_strcmp0 (sensor_str, "magnetometer") == 0) {
-		SSCSensorMagnetometer *magnetometer = ssc_sensor_magnetometer_new_sync (file, NULL, &err);
+		SSCSensorMagnetometer *magnetometer = ssc_sensor_magnetometer_new_sync (NULL, &err);
 		if (!magnetometer) {
 			g_warning ("Unable to initialize magnetometer sensor: %s", err ? err->message : "NULL");
 			return INIT_FAIL_EXIT_CODE;

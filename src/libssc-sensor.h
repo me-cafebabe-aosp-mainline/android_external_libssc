@@ -45,7 +45,7 @@ G_DECLARE_DERIVABLE_TYPE (SSCSensor, ssc_sensor, SSC, SENSOR, GObject);
 #define SSC_SENSOR_SAMPLE_RATE "sample-rate"
 #define SSC_SENSOR_CLIENT "client"
 
-void		 ssc_sensor_new (GFile *file, gchar *data_type, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+void		 ssc_sensor_new (gchar *data_type, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 SSCSensor 	*ssc_sensor_new_finish (GAsyncResult *result, GError **error);
 void		 ssc_sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean	 ssc_sensor_open_finish (SSCSensor *self, GAsyncResult *result, GError **error);

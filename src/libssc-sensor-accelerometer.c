@@ -288,7 +288,7 @@ ssc_sensor_accelerometer_new_finish (GAsyncResult *result, GError **error)
 }
 
 void
-ssc_sensor_accelerometer_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
+ssc_sensor_accelerometer_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
 	g_async_initable_new_async (
 			SSC_TYPE_SENSOR_ACCELEROMETER,
@@ -297,12 +297,11 @@ ssc_sensor_accelerometer_new (GFile *file, GCancellable *cancellable, GAsyncRead
 			callback,
 			user_data,
 			SSC_SENSOR_DATA_TYPE, "accel",
-			SSC_CLIENT_FILE_PATH, file,
 			NULL);
 }
 
 SSCSensorAccelerometer *
-ssc_sensor_accelerometer_new_sync (GFile *file, GCancellable *cancellable, GError **error)
+ssc_sensor_accelerometer_new_sync (GCancellable *cancellable, GError **error)
 {
 	SSCSensorAccelerometer *self = NULL;
 	SSCSensorAccelerometerPrivate *priv = NULL;
@@ -315,7 +314,7 @@ ssc_sensor_accelerometer_new_sync (GFile *file, GCancellable *cancellable, GErro
 	ctx.loop = g_main_loop_new (context, TRUE);
 
 	/* Create sensor */
-	ssc_sensor_accelerometer_new (file, cancellable, sync_cb, &ctx);
+	ssc_sensor_accelerometer_new (cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	self = ssc_sensor_accelerometer_new_finish (ctx.result, error);
 

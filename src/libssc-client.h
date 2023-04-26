@@ -56,10 +56,9 @@ G_DECLARE_FINAL_TYPE (SSCClient, ssc_client, SSC, CLIENT, GObject);
 #define SSC_SENSOR_UID_SUID_HIGH	0xABABABABABABABABUL
 #define SSC_MSG_REQUEST_SUID		512
 #define SSC_MSG_RESPONSE_SUID		768
-#define SSC_CLIENT_FILE_PATH		"client-file-path"
 
 void
-ssc_client_new (GFile *file, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+ssc_client_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 
 SSCClient *
 ssc_client_new_finish (GAsyncResult *res, GError **error);
