@@ -34,6 +34,7 @@ headers += files(
   'libssc-sensor-light.h',
   'libssc-sensor-accelerometer.h',
   'libssc-sensor-magnetometer.h',
+  'libssc-sensor-compass.h',
 )
 
 cli_headers = files(
@@ -53,6 +54,7 @@ sources += files(
   'libssc-sensor-light.c',
   'libssc-sensor-accelerometer.c',
   'libssc-sensor-magnetometer.c',
+  'libssc-sensor-compass.c',
 )
 
 cli_sources = files(
