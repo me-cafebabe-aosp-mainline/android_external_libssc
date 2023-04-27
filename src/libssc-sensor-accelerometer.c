@@ -248,7 +248,7 @@ ssc_sensor_accelerometer_class_init (SSCSensorAccelerometerClass *klass)
 		G_SIGNAL_RUN_FIRST,
 		0, NULL, NULL, NULL,
 		G_TYPE_NONE,
-		3, G_TYPE_FLOAT, G_TYPE_FLOAT, G_TYPE_FLOAT);
+		3, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
 }
 
 static void

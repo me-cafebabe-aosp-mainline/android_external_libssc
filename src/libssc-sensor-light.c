@@ -245,7 +245,7 @@ ssc_sensor_light_class_init (SSCSensorLightClass *klass)
 		G_SIGNAL_RUN_FIRST,
 		0, NULL, NULL, NULL,
 		G_TYPE_NONE,
-		1, G_TYPE_FLOAT);
+		1, G_TYPE_DOUBLE);
 }
 
 static void
