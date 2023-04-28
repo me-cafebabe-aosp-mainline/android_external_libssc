@@ -25,6 +25,28 @@
 #define CLOSE_FAIL_EXIT_CODE -4
 
 static gboolean
+compass_close_cb (SSCSensorCompass *self)
+{
+	g_autoptr (GError) err = NULL;
+
+	if (!ssc_sensor_compass_close_sync (self, NULL, &err)) {
+		g_warning ("Unable to close compass sensor: %s", err ? err->message : "NULL");
+	}
+
+	g_debug ("Compass sensor disabled");
+	exit(0);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void compass_measurement (SSCSensorCompass *sensor, gdouble heading, gpointer user_data)
+{
+	g_printf ("Compass sensor measurement: %f °\n", heading);
+}
+
+/*****************************************************************************/
+
+static gboolean
 magnetometer_close_cb (SSCSensorMagnetometer *self)
 {
 	g_autoptr (GError) err = NULL;
@@ -123,7 +145,7 @@ int main(int argc, char *argv[])
 	const GOptionEntry options[] = {
 		{ "version", 0, 0, G_OPTION_ARG_NONE, &print_version, "Print version information and exit.", NULL },
 		{ "debug", 'v', 0, G_OPTION_ARG_NONE, &debug, "Enable debug logs.", NULL },
-		{ "sensor", 0, 0, G_OPTION_ARG_STRING, &sensor_str, "Enable a sensor. Supported sensors: 'proximity', 'light', 'accelerometer', 'magnetometer'", NULL },
+		{ "sensor", 0, 0, G_OPTION_ARG_STRING, &sensor_str, "Enable a sensor. Supported sensors: 'proximity', 'light', 'accelerometer', 'magnetometer', 'compass'", NULL },
 		{ NULL, 0, 0, G_OPTION_ARG_NONE, NULL, NULL, NULL }
 	};
 
@@ -210,8 +232,23 @@ int main(int argc, char *argv[])
 			return OPEN_FAIL_EXIT_CODE;
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)magnetometer_close_cb, magnetometer);
+	} else if (g_strcmp0 (sensor_str, "compass") == 0) {
+		SSCSensorCompass *compass = ssc_sensor_compass_new_sync (NULL, &err);
+		if (!compass) {
+			g_warning ("Unable to initialize compass sensor: %s", err ? err->message : "NULL");
+			return INIT_FAIL_EXIT_CODE;
+		}
+		g_signal_connect (compass,
+			  	  "measurement",
+			  	  G_CALLBACK (compass_measurement),
+			  	  NULL);
+		if (!ssc_sensor_compass_open_sync (compass, NULL, &err)) {
+			g_warning ("Unable to open compass sensor: %s", err ? err->message : "UNKNOWN");
+			return OPEN_FAIL_EXIT_CODE;
+		}
+		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)compass_close_cb, compass);
 	} else {
-		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer'\n");
+		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer', 'compass'\n");
 		return GENERAL_FAIL_EXIT_CODE;
 	}
 

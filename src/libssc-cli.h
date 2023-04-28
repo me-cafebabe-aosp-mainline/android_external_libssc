@@ -34,6 +34,7 @@
 #include "libssc-sensor-light.h"
 #include "libssc-sensor-accelerometer.h"
 #include "libssc-sensor-magnetometer.h"
+#include "libssc-sensor-compass.h"
 
 typedef struct {
 	GMainLoop *loop;
