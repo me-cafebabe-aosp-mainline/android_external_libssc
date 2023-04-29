@@ -87,9 +87,9 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	SSCSensorAccelerometer *sensor = SSC_SENSOR_ACCELEROMETER (user_data);
 	guint64 sensor_uid_low;
 	guint64 sensor_uid_high;
-	gdouble x;
-	gdouble y;
-	gdouble z;
+	gfloat x;
+	gfloat y;
+	gfloat z;
 
 	g_object_get (sensor,
 		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
@@ -248,7 +248,7 @@ ssc_sensor_accelerometer_class_init (SSCSensorAccelerometerClass *klass)
 		G_SIGNAL_RUN_FIRST,
 		0, NULL, NULL, NULL,
 		G_TYPE_NONE,
-		3, G_TYPE_DOUBLE, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
+		3, G_TYPE_FLOAT, G_TYPE_FLOAT, G_TYPE_FLOAT);
 }
 
 static void

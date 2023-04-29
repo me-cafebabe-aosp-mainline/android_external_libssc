@@ -166,7 +166,7 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 
 	if (!priv->available) {
 		g_warning ("Cannot open sensor, unavailable");
-		//g_task_return_error ();
+		g_task_return_boolean (task, FALSE);
 		g_object_unref (task);
 		return;
 	}

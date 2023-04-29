@@ -27,28 +27,20 @@ enum {
 static guint signals[N_SIGNALS];
 
 typedef struct _SSCSensorCompassPrivate {
+	guint report_id;
 	guint measurement_accelerometer_id;
-	guint measurement_magnetometer_id;
-	guint measurement_compass_id;
+	SSCSensorAccelerometer *accelerometer;
 	GMainContext *context;
 	GThread *thread;
 	GMainLoop *loop;
-	SSCSensorAccelerometer *accelerometer;
-	SSCSensorMagnetometer *magnetometer;
-	gdouble accel_x;
-	gdouble accel_y;
-	gdouble accel_z;
-	gdouble mag_x;
-	gdouble mag_y;
-	gdouble mag_z;
-	GMutex *lock;
+	GMutex lock;
+	gfloat accel_x;
+	gfloat accel_y;
+	gfloat accel_z;
 } SSCSensorCompassPrivate;
 
-static void async_initable_iface_init (GAsyncInitableIface *iface);
-
 G_DEFINE_TYPE_WITH_CODE (SSCSensorCompass, ssc_sensor_compass, SSC_TYPE_SENSOR,
-			 G_ADD_PRIVATE (SSCSensorCompass)
-			 G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_INITABLE, async_initable_iface_init))
+			 G_ADD_PRIVATE (SSCSensorCompass))
 
 typedef struct {
 	GAsyncResult *result;
@@ -66,11 +58,32 @@ sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 
 /*****************************************************************************/
 
+static void
+measurement_accelerometer_cb (SSCSensorAccelerometer *sensor, gfloat accel_x, gfloat accel_y, gfloat accel_z, gpointer user_data)
+{
+	SSCSensorCompass *self = SSC_SENSOR_COMPASS (user_data);
+	SSCSensorCompassPrivate *priv = NULL;
+
+	priv = ssc_sensor_compass_get_instance_private (self);
+
+	g_mutex_lock (&priv->lock);
+
+	g_debug ("ACCELEROMETER: X=%f Y=%f Z=%f", accel_x, accel_y, accel_z);
+	priv->accel_x = accel_x;
+	priv->accel_y = accel_y;
+	priv->accel_z = accel_z;
+
+	g_mutex_unlock (&priv->lock);
+}
+
+/*****************************************************************************/
+
 static gpointer
 report_receiver_thread (gpointer user_data)
 {
 	SSCSensorCompass *self = SSC_SENSOR_COMPASS (user_data);
 	SSCSensorCompassPrivate *priv = NULL;
+	SSCClient *client = NULL;
 
 	priv = ssc_sensor_compass_get_instance_private (self);
 	g_warn_if_fail (priv->context);
@@ -85,8 +98,11 @@ report_receiver_thread (gpointer user_data)
 	priv->loop = g_main_loop_new (priv->context, TRUE);
 	g_main_loop_run (priv->loop);
 
+	g_object_get (SSC_SENSOR (self),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	g_signal_handler_disconnect (client, priv->report_id);
 	g_signal_handler_disconnect (priv->accelerometer, priv->measurement_accelerometer_id);
-	g_signal_handler_disconnect (priv->magnetometer, priv->measurement_magnetometer_id);
 
 	g_main_context_pop_thread_default (priv->context);
 
@@ -94,95 +110,98 @@ report_receiver_thread (gpointer user_data)
 }
 
 static void
-measurement_accelerometer_cb (SSCSensorAccelerometer *sensor, gfloat accel_x, gfloat accel_y, gfloat accel_z, gpointer user_data)
+report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
 {
-	SSCSensorCompass *self = SSC_SENSOR_COMPASS (user_data);
+	SscMagnetometerResponse *msg = NULL;
+	SSCSensorCompass *sensor = SSC_SENSOR_COMPASS (user_data);
 	SSCSensorCompassPrivate *priv = NULL;
+	guint64 sensor_uid_low;
+	guint64 sensor_uid_high;
+	gfloat mag_x;
+	gfloat mag_y;
+	gfloat mag_z;
+	gfloat heading;
+	gfloat heading2;
+	gfloat pitch;
+	gfloat roll;
+	gfloat horizontal_x;
+	gfloat horizontal_y;
 
-	priv = ssc_sensor_compass_get_instance_private (self);
+	g_object_get (sensor,
+		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
+		      SSC_SENSOR_UID_LOW, &sensor_uid_low,
+		      NULL);
 
-	g_mutex_lock (priv->lock);
+	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT_MAGNETOMETER) {
+		priv = ssc_sensor_compass_get_instance_private (sensor);
 
-	priv->accel_x = accel_x;
-	priv->accel_y = accel_y;
-	priv->accel_z = accel_z;
+		msg = ssc_magnetometer_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+		g_mutex_lock (&priv->lock);
 
-	g_mutex_unlock (priv->lock);
-}
+		if (msg->n_magnetic_field >= 3) {
+			//mag_x = msg->magnetic_field[0];
+			//mag_y = msg->magnetic_field[1];
+			//mag_z = msg->magnetic_field[2];
+			mag_x = msg->magnetic_field[0] / 10.0;
+			mag_y = msg->magnetic_field[1] / -10.0;
+			mag_z = msg->magnetic_field[2] / 10.0;
+		}
 
-static void
-measurement_magnetometer_cb (SSCSensorMagnetometer *sensor, gfloat mag_x, gfloat mag_y, gfloat mag_z, gpointer user_data)
-{
-	SSCSensorCompass *self = SSC_SENSOR_COMPASS (user_data);
-	SSCSensorCompassPrivate *priv = NULL;
+		g_debug ("MAGNETOMETER: X=%f, Y=%f, Z=%f", mag_x, mag_y, mag_z);
 
-	priv = ssc_sensor_compass_get_instance_private (self);
+		ssc_magnetometer_response__free_unpacked (msg, NULL);
 
-	g_mutex_lock (priv->lock);
+		/* Calculate roll and pitch angle from accelerometer */
+		//pitch = asin (priv->accel_x / SSC_SENSOR_COMPASS_GRAVITY);
+		//roll = atan (priv->accel_y / priv->accel_z);
+		roll = asin (priv->accel_x / SSC_SENSOR_COMPASS_GRAVITY);
+		pitch = atan (priv->accel_y / priv->accel_z);
+		//pitch = asin (-priv->accel_x);
+		//roll = asin (priv->accel_y / cos (pitch));
+		//g_printf ("B] PITCH: %f degrees | ROLL: %f degrees", pitch * 180.0 / M_PI, roll * 180.0 / M_PI);
 
-	priv->mag_x = mag_x;
-	priv->mag_y = mag_y;
-	priv->mag_z = mag_z;
+		/* Tilt-compensate the magnetometer readings with pitch and roll angles */
+		horizontal_x = mag_x * cos (pitch) + mag_z * sin (pitch);
+		horizontal_y = mag_x * sin (roll) + mag_y * cos (roll) - mag_z * sin (roll) * cos (pitch);
 
-	g_mutex_unlock (priv->lock);
-}
+		/* Calculate tilt-compensated heading of our compass */
+		heading = atan2 (horizontal_y, horizontal_x) * 180.0 / M_PI;
+		if (heading < 0)
+			heading += 360.0;
+		heading2 = atan2 (mag_y, mag_x);
+		if (heading < 0)
+			heading += 360.0;
 
-static gboolean
-measurement_compass_cb (gpointer user_data)
-{
-	SSCSensorCompass *self = SSC_SENSOR_COMPASS (user_data);
-	SSCSensorCompassPrivate *priv = NULL;
-	gdouble heading;
-	gdouble pitch;
-	gdouble roll;
-	gdouble horizontal_x;
-	gdouble horizontal_y;
-	
-	priv = ssc_sensor_compass_get_instance_private (self);
 
-	g_mutex_lock (priv->lock);
+		g_printf ("PITCH: %f ° | ROLL: %f °\n | HEADING: %f | HEADING2: %f°\n", pitch * 180.0 / M_PI, roll * 180.0 / M_PI, heading, heading2);
+		g_mutex_unlock (&priv->lock);
 
-	/* Calculate roll and pitch angle from accelerometer */
-	pitch = asin (priv->accel_x / SSC_SENSOR_COMPASS_GRAVITY);
-	roll = atan (priv->accel_y / priv->accel_z);
-
-	/* Tilt-compensate the magnetometer readings with pitch and roll angles */
-	horizontal_x = priv->mag_x * cos (pitch) + priv->mag_z * sin (pitch);
-	horizontal_y = priv->mag_x * sin (roll) + priv->mag_y * cos (roll) - priv->mag_z * sin (roll) * cos (pitch);
-
-	/* Calculate tilt-compensated heading of our compass */
-	heading = atan2 (horizontal_y, horizontal_x);
-
-	g_mutex_unlock (priv->lock);
-
-	g_signal_emit (self, signals[SIGNAL_MEASUREMENT], 0, heading);
-
-	return G_SOURCE_CONTINUE;
+		g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, heading);
+	}
 }
 
 /*****************************************************************************/
+
+static void
+compass_close_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
+{
+	GTask *task = G_TASK (user_data);
+	g_autoptr (GError) error = NULL;
+
+	if (!SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close_finish (sensor, result, &error)) {
+		g_task_return_boolean (task, FALSE);
+		g_object_unref (task);
+		return;
+	}
+
+	g_task_return_boolean (task, TRUE);
+	g_object_unref (task);
+}
 
 gboolean
 ssc_sensor_compass_close_finish (SSCSensorCompass *self, GAsyncResult *result, GError **error)
 {
 	return g_task_propagate_boolean (G_TASK (result), error);
-}
-
-static void
-magnetometer_close_ready (SSCSensorMagnetometer *magnetometer, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-	GTask *task = G_TASK (user_data);
-
-	if (!ssc_sensor_magnetometer_close_finish (magnetometer, result, &error)) {
-		g_task_return_error (task, error);
-		g_object_unref (task);
-		return;
-	}
-
-	/* Sensor closing finished */
-	g_task_return_boolean (task, TRUE);
-	g_object_unref (task);
 }
 
 static void
@@ -196,14 +215,14 @@ accelerometer_close_ready (SSCSensorAccelerometer *accelerometer, GAsyncResult *
 	self = g_task_get_source_object (task);
 	priv = ssc_sensor_compass_get_instance_private (self);
 
-	if (!ssc_sensor_accelerometer_close_finish (accelerometer, result, &error)) {
+	if (!ssc_sensor_accelerometer_close_finish (priv->accelerometer, result, &error)) {
 		g_task_return_error (task, error);
 		g_object_unref (task);
 		return;
 	}
 
 	/* Close magnetometer */
-	ssc_sensor_magnetometer_close (priv->magnetometer, NULL, (GAsyncReadyCallback)magnetometer_close_ready, task);
+	SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close (SSC_SENSOR (self), NULL, (GAsyncReadyCallback)compass_close_ready, task);
 }
 
 void
@@ -212,12 +231,12 @@ ssc_sensor_compass_close (SSCSensorCompass *self, GCancellable *cancellable, GAs
 	GTask *task = NULL;
 	SSCSensorCompassPrivate *priv = NULL;
 
-	priv = ssc_sensor_compass_get_instance_private (self);
-	task = g_task_new (self, cancellable, callback, user_data);
+	g_assert (SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close &&
+		  SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close_finish);
 
-	/* Stop compass calculation */
-	g_source_remove (priv->measurement_compass_id);
-	priv->measurement_compass_id = 0;
+	priv = ssc_sensor_compass_get_instance_private (self);
+
+	task = g_task_new (self, cancellable, callback, user_data);
 
 	/* Close accelerometer */
 	ssc_sensor_accelerometer_close (priv->accelerometer, NULL, (GAsyncReadyCallback)accelerometer_close_ready, task);
@@ -253,35 +272,18 @@ ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable
 
 /*****************************************************************************/
 
-gboolean
-ssc_sensor_compass_open_finish (SSCSensorCompass *self, GAsyncResult *result, GError **error)
-{
-	return g_task_propagate_boolean (G_TASK (result), error);
-}
-
 static void
-magnetometer_open_ready (SSCSensorMagnetometer *magnetometer, GAsyncResult *result, gpointer user_data)
+compass_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
 {
-	g_autoptr (GError) error = NULL;
 	GTask *task = G_TASK (user_data);
-	SSCSensorCompass *self = NULL;
-	SSCSensorCompassPrivate *priv = NULL;
+	g_autoptr (GError) error = NULL;
 
-	self = g_task_get_source_object (task);
-	priv = ssc_sensor_compass_get_instance_private (self);
-
-	if (!ssc_sensor_magnetometer_open_finish (magnetometer, result, &error)) {
-		g_task_return_error (task, error);
+	if (!SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open_finish (sensor, result, &error)) {
+		g_task_return_boolean (task, FALSE);
 		g_object_unref (task);
 		return;
 	}
 
-	/* Start compass calculation */
-	priv->measurement_compass_id = g_timeout_add (SSC_COMPASS_MEASUREMENT_INTERVAL,
-						      (GSourceFunc)measurement_compass_cb,
-						      self);
-
-	/* Sensor opening finished */
 	g_task_return_boolean (task, TRUE);
 	g_object_unref (task);
 }
@@ -297,14 +299,20 @@ accelerometer_open_ready (SSCSensorAccelerometer *accelerometer, GAsyncResult *r
 	self = g_task_get_source_object (task);
 	priv = ssc_sensor_compass_get_instance_private (self);
 
-	if (!ssc_sensor_accelerometer_open_finish (accelerometer, result, &error)) {
+	if (!ssc_sensor_accelerometer_open_finish (priv->accelerometer, result, &error)) {
 		g_task_return_error (task, error);
 		g_object_unref (task);
 		return;
 	}
 
 	/* Open magnetometer */
-	ssc_sensor_magnetometer_open (priv->magnetometer, NULL, (GAsyncReadyCallback)magnetometer_open_ready, task);
+	SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open (SSC_SENSOR (self), NULL, (GAsyncReadyCallback)compass_open_ready, task);
+}
+
+gboolean
+ssc_sensor_compass_open_finish (SSCSensorCompass *self, GAsyncResult *result, GError **error)
+{
+	return g_task_propagate_boolean (G_TASK (result), error);
 }
 
 void
@@ -313,7 +321,11 @@ ssc_sensor_compass_open (SSCSensorCompass *self, GCancellable *cancellable, GAsy
 	GTask *task = NULL;
 	SSCSensorCompassPrivate *priv = NULL;
 
+	g_assert (SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open &&
+		  SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open_finish);
+
 	priv = ssc_sensor_compass_get_instance_private (self);
+
 	task = g_task_new (self, cancellable, callback, user_data);
 
 	/* Open accelerometer */
@@ -348,88 +360,6 @@ ssc_sensor_compass_open_sync (SSCSensorCompass *self, GCancellable *cancellable,
 /*****************************************************************************/
 
 static void
-magnetometer_ready (SSCSensorMagnetometer *magnetometer, GAsyncResult *result, gpointer user_data)
-{
-	GTask *task = G_TASK (user_data);
-	SSCSensorCompassPrivate *priv = NULL;
-	g_autoptr (GError) error = NULL;
-	SSCSensorCompass *self = NULL;
-
-	self = g_task_get_source_object (task);
-	priv = ssc_sensor_compass_get_instance_private (self);
-
-	/* Magnetometer allocation */
-	priv->magnetometer = ssc_sensor_magnetometer_new_finish (result, &error);
-	if (!priv->magnetometer) {
-		g_task_return_boolean (task, FALSE);
-		g_object_unref (task);
-		return;
-	}
-
-	/* Start listening for measurement signals */
-	priv->measurement_magnetometer_id = g_signal_connect (priv->magnetometer,
-			"measurement",
-			G_CALLBACK (measurement_magnetometer_cb),
-			self);
-
-	g_task_return_boolean (task, TRUE);
-	g_object_unref (task);
-}
-
-static void
-accelerometer_ready (SSCSensorAccelerometer *accelerometer, GAsyncResult *result, gpointer user_data)
-{
-	GTask *task = G_TASK (user_data);
-	SSCSensorCompassPrivate *priv = NULL;
-	g_autoptr (GError) error = NULL;
-	SSCSensorCompass *self = NULL;
-
-	self = g_task_get_source_object (task);
-	priv = ssc_sensor_compass_get_instance_private (self);
-
-	/* Accelerometer allocation */
-	priv->accelerometer = ssc_sensor_accelerometer_new_finish (result, &error);
-	if (!priv->accelerometer) {
-		g_task_return_boolean (task, FALSE);
-		g_object_unref (task);
-		return;
-	}
-
-	/* Start listening for report signals */
-	priv->measurement_accelerometer_id = g_signal_connect (priv->accelerometer,
-			"measurement",
-			G_CALLBACK (measurement_accelerometer_cb),
-			self);
-
-	ssc_sensor_magnetometer_new (NULL, (GAsyncReadyCallback)magnetometer_ready, task);
-}
-
-static void
-initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
-{
-	GTask *task = NULL;
-	SSCSensorCompass *self = NULL;
-
-	self = SSC_SENSOR_COMPASS (initable);
-	task = g_task_new (self, cancellable, callback, user_data);
-
-	ssc_sensor_accelerometer_new (NULL, (GAsyncReadyCallback)accelerometer_ready, task);
-}
-
-static gboolean
-initable_init_finish (GAsyncInitable *initable, GAsyncResult *result, GError **error)
-{
-	return g_task_propagate_boolean (G_TASK (result), error);
-}
-
-static void
-async_initable_iface_init (GAsyncInitableIface *iface)
-{
-	iface->init_async = initable_init_async;
-	iface->init_finish = initable_init_finish;
-}
-
-static void
 ssc_sensor_compass_class_init (SSCSensorCompassClass *klass)
 {
 	signals[SIGNAL_MEASUREMENT] = g_signal_new ("measurement",
@@ -443,21 +373,21 @@ ssc_sensor_compass_class_init (SSCSensorCompassClass *klass)
 static void
 ssc_sensor_compass_init (SSCSensorCompass *self)
 {
+	g_autoptr (GError) error = NULL;
 	SSCSensorCompassPrivate *priv = NULL;
+	SSCSensorAccelerometer *accelerometer = NULL;
 
 	priv = ssc_sensor_compass_get_instance_private (self);
-	priv->accel_x = 0.0;
-	priv->accel_y = 0.0;
-	priv->accel_z = 0.0;
-	priv->mag_x = 0.0;
-	priv->mag_y = 0.0;
-	priv->mag_z = 0.0;
-	g_mutex_init (priv->lock);
+	g_mutex_init (&priv->lock);
+	accelerometer = ssc_sensor_accelerometer_new_sync (NULL, &error);
+	priv->accelerometer = error ? NULL : accelerometer;
 }
 
 SSCSensorCompass *
 ssc_sensor_compass_new_finish (GAsyncResult *result, GError **error)
 {
+	SSCSensorCompassPrivate *priv = NULL;
+	SSCClient *client = NULL;
 	GObject *sensor;
 	GObject *source;
 
@@ -469,6 +399,33 @@ ssc_sensor_compass_new_finish (GAsyncResult *result, GError **error)
 		return NULL;
 	}
 
+	priv = ssc_sensor_compass_get_instance_private (SSC_SENSOR_COMPASS (sensor));
+
+	/* Check if accelerometer is available */
+	if (!priv->accelerometer) {
+		g_warning ("Compass initialization failed: accelerometer unavailable");
+		g_object_unref (sensor);
+		g_object_unref (source);
+		return NULL;
+	}
+
+	/* Start listening for reports */
+	g_object_get (SSC_SENSOR (sensor),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	// TODO: crash because we have not chained up the parent init stuf
+	g_debug ("REPORT ID");
+	priv->report_id = g_signal_connect (client,
+			"report",
+			G_CALLBACK (report_received),
+			SSC_SENSOR_COMPASS (sensor));
+	g_debug ("ACCELEROMETER");
+	priv->measurement_accelerometer_id = g_signal_connect (priv->accelerometer,
+			"measurement",
+			G_CALLBACK (measurement_accelerometer_cb),
+			SSC_SENSOR_COMPASS (sensor));
+	g_debug ("DONE");
+
 	g_object_unref (source);
 	return SSC_SENSOR_COMPASS (sensor);
 }
@@ -476,13 +433,14 @@ ssc_sensor_compass_new_finish (GAsyncResult *result, GError **error)
 void
 ssc_sensor_compass_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
+	/* Compass sensor consists of magnetometer and accelerometer */
 	g_async_initable_new_async (
 			SSC_TYPE_SENSOR_COMPASS,
 			G_PRIORITY_DEFAULT,
 			cancellable,
 			callback,
 			user_data,
-			SSC_SENSOR_DATA_TYPE, "rotv",
+			SSC_SENSOR_DATA_TYPE, "mag",
 			NULL);
 }
 

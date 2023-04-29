@@ -87,7 +87,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	SSCSensorLight *sensor = SSC_SENSOR_LIGHT (user_data);
 	guint64 sensor_uid_low;
 	guint64 sensor_uid_high;
-	gdouble intensity;
+	gfloat intensity;
 
 	g_object_get (sensor,
 		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
@@ -245,7 +245,7 @@ ssc_sensor_light_class_init (SSCSensorLightClass *klass)
 		G_SIGNAL_RUN_FIRST,
 		0, NULL, NULL, NULL,
 		G_TYPE_NONE,
-		1, G_TYPE_DOUBLE);
+		1, G_TYPE_FLOAT);
 }
 
 static void
