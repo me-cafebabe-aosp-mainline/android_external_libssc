@@ -482,6 +482,7 @@ ssc_sensor_compass_new (GCancellable *cancellable, GAsyncReadyCallback callback,
 			cancellable,
 			callback,
 			user_data,
+			SSC_SENSOR_DATA_TYPE, "rotv",
 			NULL);
 }
 
