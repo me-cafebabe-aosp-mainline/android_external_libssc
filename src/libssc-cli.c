@@ -29,9 +29,8 @@ compass_close_cb (SSCSensorCompass *self)
 {
 	g_autoptr (GError) err = NULL;
 
-	if (!ssc_sensor_compass_close_sync (self, NULL, &err)) {
-		g_warning ("Unable to close compass sensor: %s", err ? err->message : "NULL");
-	}
+	if (!ssc_sensor_compass_close_sync (self, NULL, &err))
+		g_printf ("Unable to close compass sensor: %s\n", err ? err->message : "UNKNOWN");
 
 	g_debug ("Compass sensor disabled");
 	exit(0);
@@ -51,9 +50,8 @@ magnetometer_close_cb (SSCSensorMagnetometer *self)
 {
 	g_autoptr (GError) err = NULL;
 
-	if (!ssc_sensor_magnetometer_close_sync (self, NULL, &err)) {
-		g_warning ("Unable to close magnetometer sensor: %s", err ? err->message : "NULL");
-	}
+	if (!ssc_sensor_magnetometer_close_sync (self, NULL, &err))
+		g_printf ("Unable to close magnetometer sensor: %s\n", err ? err->message : "UNKNOWN");
 
 	g_debug ("Magnetometer sensor disabled");
 	exit(0);
@@ -73,9 +71,8 @@ accelerometer_close_cb (SSCSensorAccelerometer *self)
 {
 	g_autoptr (GError) err = NULL;
 
-	if (!ssc_sensor_accelerometer_close_sync (self, NULL, &err)) {
-		g_warning ("Unable to close accelerometer sensor: %s", err ? err->message : "NULL");
-	}
+	if (!ssc_sensor_accelerometer_close_sync (self, NULL, &err))
+		g_printf ("Unable to close accelerometer sensor: %s\n", err ? err->message : "UNKNOWN");
 
 	g_debug ("Accelerometer sensor disabled");
 	exit(0);
@@ -95,9 +92,8 @@ light_close_cb (SSCSensorLight *self)
 {
 	g_autoptr (GError) err = NULL;
 
-	if (!ssc_sensor_light_close_sync (self, NULL, &err)) {
-		g_warning ("Unable to close light sensor: %s", err ? err->message : "NULL");
-	}
+	if (!ssc_sensor_light_close_sync (self, NULL, &err))
+		g_printf ("Unable to close light sensor: %s\n", err ? err->message : "UNKNOWN");
 
 	g_debug ("Light sensor disabled");
 	exit(0);
@@ -117,9 +113,8 @@ proximity_close_cb (SSCSensorProximity *self)
 {
 	g_autoptr (GError) err = NULL;
 
-	if (!ssc_sensor_proximity_close_sync (self, NULL, &err)) {
-		g_warning ("Unable to close proximity sensor: %s", err ? err->message : "NULL");
-	}
+	if (!ssc_sensor_proximity_close_sync (self, NULL, &err))
+		g_printf ("Unable to close proximity sensor: %s\n", err ? err->message : "UNKNOWN");
 
 	g_debug ("Proximity sensor disabled");
 	exit(0);
@@ -175,7 +170,7 @@ int main(int argc, char *argv[])
 	if (g_strcmp0 (sensor_str, "proximity") == 0) {
 		SSCSensorProximity *proximity = ssc_sensor_proximity_new_sync (NULL, &err);
 		if (!proximity) {
-			g_warning ("Unable to initialize proximity sensor: %s", err ? err->message : "NULL");
+			g_printf ("Unable to initialize proximity sensor: %s\n", err ? err->message : "UNKNOWN");
 			return INIT_FAIL_EXIT_CODE;
 		}
 		g_signal_connect (proximity,
@@ -183,14 +178,14 @@ int main(int argc, char *argv[])
 			  	  G_CALLBACK (proximity_measurement),
 			  	  NULL);
 		if (!ssc_sensor_proximity_open_sync (proximity, NULL, &err)) {
-			g_warning ("Unable to open proximity sensor: %s", err ? err->message : "UNKNOWN");
+			g_printf ("Unable to open proximity sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)proximity_close_cb, proximity);
 	} else if (g_strcmp0 (sensor_str, "light") == 0) {
 		SSCSensorLight *light = ssc_sensor_light_new_sync (NULL, &err);
 		if (!light) {
-			g_warning ("Unable to initialize light sensor: %s", err ? err->message : "NULL");
+			g_printf ("Unable to initialize light sensor: %s\n", err ? err->message : "UNKNOWN");
 			return INIT_FAIL_EXIT_CODE;
 		}
 		g_signal_connect (light,
@@ -198,14 +193,14 @@ int main(int argc, char *argv[])
 			  	  G_CALLBACK (light_measurement),
 			  	  NULL);
 		if (!ssc_sensor_light_open_sync (light, NULL, &err)) {
-			g_warning ("Unable to open light sensor: %s", err ? err->message : "UNKNOWN");
+			g_printf ("Unable to open light sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)light_close_cb, light);
 	} else if (g_strcmp0 (sensor_str, "accelerometer") == 0) {
 		SSCSensorAccelerometer *accelerometer = ssc_sensor_accelerometer_new_sync (NULL, &err);
 		if (!accelerometer) {
-			g_warning ("Unable to initialize accelerometer sensor: %s", err ? err->message : "NULL");
+			g_printf ("Unable to initialize accelerometer sensor: %s\n", err ? err->message : "UNKNOWN");
 			return INIT_FAIL_EXIT_CODE;
 		}
 		g_signal_connect (accelerometer,
@@ -213,14 +208,14 @@ int main(int argc, char *argv[])
 			  	  G_CALLBACK (accelerometer_measurement),
 			  	  NULL);
 		if (!ssc_sensor_accelerometer_open_sync (accelerometer, NULL, &err)) {
-			g_warning ("Unable to open accelerometer sensor: %s", err ? err->message : "UNKNOWN");
+			g_printf ("Unable to open accelerometer sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)accelerometer_close_cb, accelerometer);
 	} else if (g_strcmp0 (sensor_str, "magnetometer") == 0) {
 		SSCSensorMagnetometer *magnetometer = ssc_sensor_magnetometer_new_sync (NULL, &err);
 		if (!magnetometer) {
-			g_warning ("Unable to initialize magnetometer sensor: %s", err ? err->message : "NULL");
+			g_printf ("Unable to initialize magnetometer sensor: %s\n", err ? err->message : "UNKNOWN");
 			return INIT_FAIL_EXIT_CODE;
 		}
 		g_signal_connect (magnetometer,
@@ -228,14 +223,14 @@ int main(int argc, char *argv[])
 			  	  G_CALLBACK (magnetometer_measurement),
 			  	  NULL);
 		if (!ssc_sensor_magnetometer_open_sync (magnetometer, NULL, &err)) {
-			g_warning ("Unable to open magnetometer sensor: %s", err ? err->message : "UNKNOWN");
+			g_printf ("Unable to open magnetometer sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)magnetometer_close_cb, magnetometer);
 	} else if (g_strcmp0 (sensor_str, "compass") == 0) {
 		SSCSensorCompass *compass = ssc_sensor_compass_new_sync (NULL, &err);
 		if (!compass) {
-			g_warning ("Unable to initialize compass sensor: %s", err ? err->message : "NULL");
+			g_printf ("Unable to initialize compass sensor: %s\n", err ? err->message : "UNKNOWN");
 			return INIT_FAIL_EXIT_CODE;
 		}
 		g_signal_connect (compass,
@@ -243,7 +238,7 @@ int main(int argc, char *argv[])
 			  	  G_CALLBACK (compass_measurement),
 			  	  NULL);
 		if (!ssc_sensor_compass_open_sync (compass, NULL, &err)) {
-			g_warning ("Unable to open compass sensor: %s", err ? err->message : "UNKNOWN");
+			g_printf ("Unable to open compass sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
 		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)compass_close_cb, compass);
