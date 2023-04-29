@@ -276,7 +276,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		} else {
 			g_debug ("No '%s' sensor available", priv->data_type);
 			ssc_suid_response__free_unpacked (suid_msg, NULL);
-			
+
+			g_signal_handler_disconnect (self, priv->report_id);
+			priv->report_id = 0;
+
 			g_task_return_boolean (ctx->task, FALSE);
 			g_clear_object (&ctx->task);
 			g_slice_free (ReportReceivedContext, ctx);

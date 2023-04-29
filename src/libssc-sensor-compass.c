@@ -505,6 +505,9 @@ ssc_sensor_compass_new_sync (GCancellable *cancellable, GError **error)
 
 	g_main_context_pop_thread_default (context);
 
+	if (!self)
+		return NULL;
+
 	/* Keep context for future calls to avoid interference with default context */
 	priv = ssc_sensor_compass_get_instance_private (self);
 	priv->context = g_main_context_ref (context);
