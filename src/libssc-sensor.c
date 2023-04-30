@@ -250,6 +250,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	gboolean attributes_populated = FALSE;
 
 	priv = ssc_sensor_get_instance_private (ctx->sensor);
+	g_debug ("Message %d for sensor (%016lX %016lX) received", msg_id, uid_high, uid_low);
 
 	/* Discover response */
 	if (uid_high == SSC_SENSOR_UID_SUID_HIGH && uid_low == SSC_SENSOR_UID_SUID_LOW && msg_id == SSC_MSG_RESPONSE_SUID) {
@@ -337,6 +338,11 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		
 		ssc_attr_response__free_unpacked (attr_msg, NULL);
 		return;
+	/* 
+	 * Sensor is enabled when a configuration update is received.
+	 * Since some sensors do not emit a configuration update,
+	 * either a measurement or configuration update completes the enabling task, whatever comes first.
+	 */
 	} else if (uid_high == priv->uid_high && uid_low == priv->uid_low && msg_id == SSC_MSG_RESPONSE_ENABLE_REPORT) {
 		config_msg = ssc_config_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 		
@@ -355,6 +361,22 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 
 		ssc_config_response__free_unpacked (config_msg, NULL);
 		return;
+	/* 
+	 * Some sensors do not emit a configuration update when they are enabled such as the Rotation Vector sensor.
+	 * Assume they are enabled when a measurement is received.
+	 * Apply this for any sensor to cover new sensors in the future as well.
+	 * Either a configuration update or measurement will complete the task and disconnect the listener.
+	 */
+	} else if (uid_high == priv->uid_high && uid_low == priv->uid_low && (msg_id == SSC_MSG_REPORT_MEASUREMENT || msg_id == SSC_MSG_REPORT_MEASUREMENT_PROXIMITY)) {
+		g_debug ("Measurement received for '%s' sensor (%016lX %016lX), assuming enabled", priv->data_type, priv->uid_high, priv->uid_low);
+
+		if (ctx->task) {
+			g_signal_handler_disconnect (self, priv->report_id);
+			priv->report_id = 0;
+			g_task_return_boolean (ctx->task, TRUE);
+			g_clear_object (&ctx->task);	
+			g_slice_free (ReportReceivedContext, ctx);
+		}
 	}
 }
 
