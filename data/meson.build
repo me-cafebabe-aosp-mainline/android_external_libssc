@@ -26,6 +26,7 @@ msgs = [
   'sensor-light',
   'sensor-accelerometer',
   'sensor-magnetometer',
+  'sensor-rotationvector',
 ]
 sources_gen = []
 headers_gen = []

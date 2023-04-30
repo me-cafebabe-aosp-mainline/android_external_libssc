@@ -25,11 +25,9 @@
 #include "libssc-client.h"
 #include "libssc-common.h"
 #include "libssc-sensor.h"
-#include "libssc-sensor-accelerometer.h"
-#include "libssc-sensor-magnetometer.h"
+#include "ssc-sensor-rotationvector.pb-c.h"
 
 #define SSC_TYPE_SENSOR_COMPASS (ssc_sensor_compass_get_type())
-#define SSC_SENSOR_COMPASS_GRAVITY 9.81
 
 typedef struct _SSCSensorCompass {
 	SSCSensor parent;

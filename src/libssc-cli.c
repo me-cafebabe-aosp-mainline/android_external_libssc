@@ -18,7 +18,7 @@
 
 #include "libssc-cli.h"
 
-#define ENABLE_SECONDS 3
+#define ENABLE_SECONDS 10
 #define GENERAL_FAIL_EXIT_CODE -1
 #define INIT_FAIL_EXIT_CODE -2
 #define OPEN_FAIL_EXIT_CODE -3
