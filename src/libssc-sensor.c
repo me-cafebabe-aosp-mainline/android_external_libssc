@@ -182,7 +182,7 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 
 		if (priv->sample_rate <= 0.0) {
 			g_warning ("Sample rate unavailable");
-			//g_task_return_error ();
+			g_task_return_boolean (task, FALSE);
 			g_object_unref (task);
 			return;
 		}
