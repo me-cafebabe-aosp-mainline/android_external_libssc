@@ -37,5 +37,5 @@ ssc_common_dump_protobuf (GArray *protobuf)
 	}
 
 	data = g_string_free (str, FALSE);
-	g_debug (data);
+	g_debug ("%s", data);
 }
