@@ -188,7 +188,7 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 
 	if (buf == NULL) {
 		g_warning ("Protobuf message couldn't be build for SUID sensor");
-		//g_task_return_error ();
+		g_task_return_boolean (task, FALSE);
 		g_clear_object (&task);
 		return;
 	}
@@ -199,7 +199,7 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	if (!qmi_message_ssc_control_input_set_unknown_value (input, SSC_QMI_REQUEST_UNKNOWN_VALUE, &error)) {
 		g_warning ("Inserting unknown value failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
-		//g_task_return_error ();
+		g_task_return_boolean (task, FALSE);
 		g_clear_object (&task);
 		return;
 	}
@@ -207,7 +207,7 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	if (!qmi_message_ssc_control_input_set_protobuf_data (input, buf, &error)) {
 		g_warning ("Inserting protobuf data failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
-		//g_task_return_error ();
+		g_task_return_boolean (task, FALSE);
 		g_clear_object (&task);
 		return;
 	}
@@ -216,7 +216,7 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	qmi_client_ssc_control (priv->qmi_client_ssc,
 		input,
 		10,
-		NULL,
+		g_task_get_cancellable (task),
 		(GAsyncReadyCallback)request_ready,
 		task);
 
@@ -282,7 +282,7 @@ device_open_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 		QMI_SERVICE_SSC,
 		QMI_CID_NONE,
 		10,
-		NULL,
+		g_task_get_cancellable (task),
 		(GAsyncReadyCallback)allocate_client_ready,
 		task);
 }
@@ -317,7 +317,7 @@ device_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	qmi_device_open (priv->device,
 		open_flags,
 		15,
-		NULL,
+		g_task_get_cancellable (task),
 		(GAsyncReadyCallback)device_open_ready,
 		task);
 }
@@ -367,7 +367,7 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	/* QRTR node ready, create QMI device */
 	qmi_device_new_from_node (node,
-		NULL,
+		g_task_get_cancellable (task),
 		(GAsyncReadyCallback)device_new_ready,
 		task);
 }
@@ -410,19 +410,11 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 			      NULL,
 			      (GAsyncReadyCallback)bus_new_ready,
 			      task);
-
-		/*g_task_return_new_error (task,
-					 LIBSSC_ERROR,
-					 LIBSSC_ERROR_QRTR,
-					 "Device URI is not a QRTR node: %s",
-					 id);*/
 		return;
 	}
 # else
-	/*g_task_return_new_error (task,
-				 LIBSSC_ERROR,
-				 LIBSSC_ERROR_QRTR,
-				 "Only QRTR QMI devices are supported. Compile libqmi with QRTR support")*/
+	g_warning ("Only QRTR QMI devices are supported. Compile libqmi with QRTR support");
+	g_task_return_boolean (task, FALSE);
 	g_clear_object (&task);
 	return;
 #endif

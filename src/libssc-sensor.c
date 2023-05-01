@@ -107,7 +107,7 @@ sensor_close (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback ca
 			 priv->uid_low,
 			 SSC_MSG_REQUEST_DISABLE_REPORT,
 			 NULL,
-			 NULL,
+			 g_task_get_cancellable (task),
 			 (GAsyncReadyCallback)sensor_close_ready,
 			 task);
 }
@@ -217,7 +217,7 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 			 priv->uid_low,
 			 msg_id,
 			 buf,
-			 NULL,
+			 g_task_get_cancellable (task),
 			 (GAsyncReadyCallback)sensor_open_ready,
 			 task);
 }
@@ -418,7 +418,7 @@ attribute (SSCSensor *self, GTask *task)
 			 priv->uid_low,
 			 SSC_MSG_REQUEST_GET_ATTRIBUTES,
 			 buf,
-			 NULL,
+			 g_task_get_cancellable (task),
 			 (GAsyncReadyCallback)attribute_ready,
 			 NULL);
 }
@@ -472,7 +472,7 @@ discover (SSCSensor *self, GTask *task)
 			 SSC_SENSOR_UID_SUID_LOW,
 			 SSC_MSG_REQUEST_SUID,
 			 buf,
-			 NULL,
+			 g_task_get_cancellable (task),
 			 (GAsyncReadyCallback)discovery_ready,
 			 NULL); 
 }
@@ -521,7 +521,7 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 	self = SSC_SENSOR (initable);
 	task = g_task_new (self, cancellable, callback, user_data);
 
-	ssc_client_new (NULL, (GAsyncReadyCallback)client_ready, task);
+	ssc_client_new (g_task_get_cancellable (task), (GAsyncReadyCallback)client_ready, task);
 }
 
 static gboolean
