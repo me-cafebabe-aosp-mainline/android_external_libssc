@@ -87,7 +87,6 @@ report_receiver_thread (gpointer user_data)
 {
 	SSCSensorCompass *self = SSC_SENSOR_COMPASS (user_data);
 	SSCSensorCompassPrivate *priv = NULL;
-	SSCClient *client = NULL;
 
 	priv = ssc_sensor_compass_get_instance_private (self);
 	g_warn_if_fail (priv->context);
@@ -95,17 +94,11 @@ report_receiver_thread (gpointer user_data)
 	/*
 	 * Create main loop with context to receive QMI indications.
 	 * The loop will be quited in close_sync when the thread should exit.
-	 * Once quited, disconnect signal handler.
 	 */
 	g_main_context_push_thread_default (priv->context);
 
 	priv->loop = g_main_loop_new (priv->context, TRUE);
 	g_main_loop_run (priv->loop);
-
-	g_object_get (SSC_SENSOR (self),
-		      SSC_SENSOR_CLIENT, &client,
-		      NULL);
-	g_signal_handler_disconnect (client, priv->report_id);
 
 	g_main_context_pop_thread_default (priv->context);
 
@@ -180,12 +173,22 @@ void
 ssc_sensor_compass_close (SSCSensorCompass *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
 	GTask *task = NULL;
+	SSCClient *client = NULL;
+	SSCSensorCompassPrivate *priv = NULL;
 
 	g_assert (SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close &&
 		  SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close_finish);
 
 	task = g_task_new (self, cancellable, callback, user_data);
+	priv = ssc_sensor_compass_get_instance_private (self);
 
+	/* Stop listening for reports */
+	g_object_get (SSC_SENSOR (self),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	g_signal_handler_disconnect (client, priv->report_id);
+
+	/* Close sensor */
 	SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)compass_close_ready, task);
 }
 
