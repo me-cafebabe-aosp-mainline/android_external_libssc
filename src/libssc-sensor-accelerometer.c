@@ -48,6 +48,19 @@ sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 	g_main_loop_quit (ctx->loop);
 }
 
+typedef struct {
+	SSCSensorAccelerometer *sensor;
+	gfloat x;
+	gfloat y;
+	gfloat z;
+} SignalContext;
+
+static void
+signal_context_free (SignalContext *ctx)
+{
+	g_slice_free (SignalContext, ctx);
+}
+
 /*****************************************************************************/
 
 static gpointer
@@ -74,11 +87,21 @@ report_receiver_thread (gpointer user_data)
 	return NULL;
 }
 
+static gboolean
+emit_signal (gpointer user_data) {
+	SignalContext *ctx = user_data;
+
+	g_signal_emit (ctx->sensor, signals[SIGNAL_MEASUREMENT], 0, ctx->x, ctx->y, ctx->z);
+
+	return G_SOURCE_REMOVE;
+}
+
 static void
 report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
 {
 	SscAccelerometerResponse *msg = NULL;
 	SSCSensorAccelerometer *sensor = SSC_SENSOR_ACCELEROMETER (user_data);
+	SignalContext *ctx = NULL;
 	guint64 sensor_uid_low;
 	guint64 sensor_uid_high;
 	gfloat x;
@@ -98,7 +121,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			y = msg->acceleration[1];
 			z = msg->acceleration[2];
 
-			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, x, y, z); 
+			/* Emit signal in main context instead of thread's context */
+			ctx = g_slice_new0 (SignalContext);
+			ctx->sensor = sensor;
+			ctx->x = x;
+			ctx->y = y;
+			ctx->z = z;
+			g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, emit_signal, ctx, (GDestroyNotify)signal_context_free);
 		}
 
 		ssc_accelerometer_response__free_unpacked (msg, NULL);

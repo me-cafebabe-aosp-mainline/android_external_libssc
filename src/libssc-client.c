@@ -76,7 +76,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 		 * once they have processed it.
 		 */
 		g_signal_emit (self, signals[SIGNAL_REPORT], 0, body->msg_id, msg->uid->high, msg->uid->low, buf);
-		g_array_free (buf, TRUE);
+		//g_array_free (buf, TRUE);
 	}
 
 	ssc_client_response__free_unpacked (msg, NULL);

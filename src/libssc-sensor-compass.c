@@ -48,6 +48,17 @@ sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
 	g_main_loop_quit (ctx->loop);
 }
 
+typedef struct {
+	SSCSensorCompass *sensor;
+	gfloat azimuth;
+} SignalContext;
+
+static void
+signal_context_free (SignalContext *ctx)
+{
+	g_slice_free (SignalContext, ctx);
+}
+
 /*****************************************************************************/
 static gfloat
 calculate_azimuth (gfloat x, gfloat y, gfloat z, gfloat w)
@@ -105,11 +116,21 @@ report_receiver_thread (gpointer user_data)
 	return NULL;
 }
 
+static gboolean
+emit_signal (gpointer user_data) {
+	SignalContext *ctx = user_data;
+
+	g_signal_emit (ctx->sensor, signals[SIGNAL_MEASUREMENT], 0, ctx->azimuth);
+
+	return G_SOURCE_REMOVE;
+}
+
 static void
 report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
 {
 	SscRotationvectorResponse *msg = NULL;
 	SSCSensorCompass *sensor = SSC_SENSOR_COMPASS (user_data);
+	SignalContext *ctx = NULL;
 	guint64 sensor_uid_low;
 	guint64 sensor_uid_high;
 	gfloat x;
@@ -131,13 +152,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			y = msg->rotation[1];
 			z = msg->rotation[2];
 			w = msg->rotation[3];
-
-			g_debug ("Received quoterion: X=%f, Y=%f, Z=%f, W=%f", x, y, z, w);
-
 			azimuth = calculate_azimuth (x, y, z, w);
-			g_debug ("Calculate azimuth: %f degrees", azimuth);
 
-			g_signal_emit (sensor, signals[SIGNAL_MEASUREMENT], 0, azimuth);
+			/* Emit signal in main context instead of thread's context */
+			ctx = g_slice_new0 (SignalContext);
+			ctx->sensor = sensor;
+			ctx->azimuth = azimuth;
+			g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, emit_signal, ctx, (GDestroyNotify)signal_context_free);
 		}
 
 		ssc_rotationvector_response__free_unpacked (msg, NULL);
