@@ -117,7 +117,6 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	gfloat z;
 	gfloat w;
 	gfloat azimuth;
-	gfloat azimuth2;
 
 	g_object_get (sensor,
 		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
