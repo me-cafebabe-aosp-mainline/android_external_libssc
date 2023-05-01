@@ -155,6 +155,7 @@ proximity_close_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_da
 	}
 
 	g_task_return_boolean (task, TRUE);
+	g_object_unref (task);
 }
 
 gboolean
@@ -199,6 +200,7 @@ ssc_sensor_proximity_close_sync (SSCSensorProximity *self, GCancellable *cancell
 
 	/* Stop report context thread before re-acquiring our context */
 	g_main_loop_quit (priv->loop);
+	g_main_loop_unref (priv->loop);
 	g_thread_join (priv->thread);
 
 	/* Take over context and close sensor */
@@ -210,6 +212,8 @@ ssc_sensor_proximity_close_sync (SSCSensorProximity *self, GCancellable *cancell
 	success = ssc_sensor_proximity_close_finish (self, ctx.result, error);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -229,6 +233,7 @@ proximity_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_dat
 	}
 
 	g_task_return_boolean (task, TRUE);
+	g_object_unref (task);
 }
 
 gboolean
@@ -271,6 +276,8 @@ ssc_sensor_proximity_open_sync (SSCSensorProximity *self, GCancellable *cancella
 	priv->thread = g_thread_new ("report-receiver-proximity", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -356,6 +363,8 @@ ssc_sensor_proximity_new_sync (GCancellable *cancellable, GError **error)
 	self = ssc_sensor_proximity_new_finish (ctx.result, error);
 
 	g_main_context_pop_thread_default (context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	if (!self)
 		return NULL;

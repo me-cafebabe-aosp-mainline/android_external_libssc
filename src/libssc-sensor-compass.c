@@ -225,6 +225,7 @@ ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable
 
 	/* Stop report context thread before re-acquiring our context */
 	g_main_loop_quit (priv->loop);
+	g_main_loop_unref(priv->loop);
 	g_thread_join (priv->thread);
 
 	/* Take over context and close sensor */
@@ -236,6 +237,8 @@ ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable
 	success = ssc_sensor_compass_close_finish (self, ctx.result, error);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -298,6 +301,8 @@ ssc_sensor_compass_open_sync (SSCSensorCompass *self, GCancellable *cancellable,
 	priv->thread = g_thread_new ("report-receiver-compass", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -383,6 +388,8 @@ ssc_sensor_compass_new_sync (GCancellable *cancellable, GError **error)
 	self = ssc_sensor_compass_new_finish (ctx.result, error);
 
 	g_main_context_pop_thread_default (context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	if (!self)
 		return NULL;

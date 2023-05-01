@@ -194,6 +194,7 @@ ssc_sensor_accelerometer_close_sync (SSCSensorAccelerometer *self, GCancellable 
 
 	/* Stop report context thread before re-acquiring our context */
 	g_main_loop_quit (priv->loop);
+	g_main_loop_unref (priv->loop);
 	g_thread_join (priv->thread);
 
 	/* Take over context and close sensor */
@@ -205,6 +206,8 @@ ssc_sensor_accelerometer_close_sync (SSCSensorAccelerometer *self, GCancellable 
 	success = ssc_sensor_accelerometer_close_finish (self, ctx.result, error);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -267,6 +270,8 @@ ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *
 	priv->thread = g_thread_new ("report-receiver-accelerometer", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -352,6 +357,8 @@ ssc_sensor_accelerometer_new_sync (GCancellable *cancellable, GError **error)
 	self = ssc_sensor_accelerometer_new_finish (ctx.result, error);
 
 	g_main_context_pop_thread_default (context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	if (!self)
 		return NULL;

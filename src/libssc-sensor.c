@@ -250,7 +250,6 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	gboolean attributes_populated = FALSE;
 
 	priv = ssc_sensor_get_instance_private (ctx->sensor);
-	g_debug ("Message %d for sensor (%016lX %016lX) received", msg_id, uid_high, uid_low);
 
 	/* Discover response */
 	if (uid_high == SSC_SENSOR_UID_SUID_HIGH && uid_low == SSC_SENSOR_UID_SUID_LOW && msg_id == SSC_MSG_RESPONSE_SUID) {

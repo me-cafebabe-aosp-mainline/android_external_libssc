@@ -193,6 +193,7 @@ ssc_sensor_magnetometer_close_sync (SSCSensorMagnetometer *self, GCancellable *c
 
 	/* Stop report context thread before re-acquiring our context */
 	g_main_loop_quit (priv->loop);
+	g_main_loop_unref (priv->loop);
 	g_thread_join (priv->thread);
 
 	/* Take over context and close sensor */
@@ -204,6 +205,8 @@ ssc_sensor_magnetometer_close_sync (SSCSensorMagnetometer *self, GCancellable *c
 	success = ssc_sensor_magnetometer_close_finish (self, ctx.result, error);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -266,6 +269,8 @@ ssc_sensor_magnetometer_open_sync (SSCSensorMagnetometer *self, GCancellable *ca
 	priv->thread = g_thread_new ("report-receiver-magnetometer", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	return success;
 }
@@ -351,6 +356,8 @@ ssc_sensor_magnetometer_new_sync (GCancellable *cancellable, GError **error)
 	self = ssc_sensor_magnetometer_new_finish (ctx.result, error);
 
 	g_main_context_pop_thread_default (context);
+	g_main_loop_unref (ctx.loop);
+	g_object_unref (ctx.result);
 
 	if (!self)
 		return NULL;

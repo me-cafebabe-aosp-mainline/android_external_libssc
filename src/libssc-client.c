@@ -68,7 +68,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 		g_array_set_size (buf, body->msg.len);
 		memcpy (buf->data, (char *) body->msg.data, body->msg.len);
 
-		//g_debug ("Got message %" G_GUINT32_FORMAT " for sensor %016lX %016lX", body->msg_id, msg->uid->high, msg->uid->low);
+		g_debug ("Message %" G_GUINT32_FORMAT " for sensor %016lX %016lX", body->msg_id, msg->uid->high, msg->uid->low);
 
 		/*
 		 * Emit a GSignal on which sensor drivers can subscribe to
@@ -76,7 +76,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 		 * once they have processed it.
 		 */
 		g_signal_emit (self, signals[SIGNAL_REPORT], 0, body->msg_id, msg->uid->high, msg->uid->low, buf);
-		//g_array_free (buf, TRUE);
+		g_array_free (buf, TRUE);
 	}
 
 	ssc_client_response__free_unpacked (msg, NULL);
@@ -344,7 +344,7 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	}
 
 	/* Find QRTR node for SSC service */
-	for (GList *l = qrtr_bus_get_nodes (priv->bus); l != NULL; l = l->next) {
+	for (GList *l = qrtr_bus_peek_nodes (priv->bus); l != NULL; l = l->next) {
 		node = l->data;
 
 		if (node && qrtr_node_lookup_port (node, QMI_SERVICE_SSC) >= 0) {
@@ -354,11 +354,8 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	}
 
 	if (!found) {
-		/*g_task_return_new_error (task,
-					 LIBSSC_ERROR,
-					 LIBSSC_ERROR_QRTR,
-					 "node with id %" G_GUINT32_FORMAT "not found in QRTR bus",
-					 priv->node_id);*/
+		g_warning ("Service SSC not found");
+		g_task_return_boolean (task, FALSE);
 		g_clear_object (&task);
 		return;
 	}
