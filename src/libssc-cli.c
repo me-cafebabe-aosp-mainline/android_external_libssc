@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 	SSCCli cli;
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
-	g_autofree gchar *sensor_str = "";
+	gchar *sensor_str = "";
 	const GOptionEntry options[] = {
 		{ "version", 0, 0, G_OPTION_ARG_NONE, &print_version, "Print version information and exit.", NULL },
 		{ "debug", 'v', 0, G_OPTION_ARG_NONE, &debug, "Enable debug logs.", NULL },
