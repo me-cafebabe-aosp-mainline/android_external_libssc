@@ -608,10 +608,17 @@ sensor_dispose (GObject *object)
 	SSCSensor *self = SSC_SENSOR (object);
 	SSCSensorPrivate *priv = ssc_sensor_get_instance_private (self);
 
-	g_free (&priv->name);
-	g_free (&priv->vendor);
-	g_free (&priv->data_type);
-	g_clear_object (&priv->client);
+	if (priv->name)
+		g_free (priv->name);
+
+	if (priv->vendor)
+		g_free (priv->vendor);
+
+	if (priv->data_type)
+		g_free (priv->data_type);
+	
+	if (priv->client)
+		g_clear_object (&priv->client);
 }
 
 static void
@@ -709,6 +716,18 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 static void
 ssc_sensor_init (SSCSensor *self)
 {
+	SSCSensorPrivate *priv = NULL;
+
+	priv = ssc_sensor_get_instance_private (self);
+
+
+	priv->name = NULL;
+	priv->vendor = NULL;
+	priv->data_type = NULL;
+	priv->sample_rate = 0.0;
+	priv->available = false;
+	priv->stream_type = 0;
+	priv->client = NULL;
 }
 
 SSCSensor *
