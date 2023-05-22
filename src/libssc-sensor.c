@@ -306,8 +306,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 						break;
 					case SSC_ATTRIBUTE_SAMPLE_RATE:
 						/* Only a single sample rate is supported for now. */
-						if (attr_msg->attr[i]->value_array->n_v >= 1 && attr_msg->attr[i]->value_array->v[0]->has_f)
-							priv->sample_rate = attr_msg->attr[i]->value_array->v[0]->f;
+						for (gsize j = 0; j < attr_msg->attr[i]->value_array->n_v; j++) {
+							if (attr_msg->attr[i]->value_array->v[j]->has_f
+							 && attr_msg->attr[i]->value_array->v[j]->f > 0) {
+								priv->sample_rate = attr_msg->attr[i]->value_array->v[j]->f;
+								break;
+							}
+						}
 						break;
 					case SSC_ATTRIBUTE_STREAM_TYPE:
 						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i)
