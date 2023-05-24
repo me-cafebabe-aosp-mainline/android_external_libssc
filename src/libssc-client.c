@@ -402,6 +402,7 @@ ssc_client_dispose (GObject *object)
 	priv = ssc_client_get_instance_private (SSC_CLIENT (object));
 
 	g_debug ("Releasing SSC QMI client");
+	g_assert_nonnull (priv->qmi_client_ssc);
 	flags |= QMI_DEVICE_RELEASE_CLIENT_FLAGS_RELEASE_CID;
 
 	qmi_device_release_client (priv->device,
