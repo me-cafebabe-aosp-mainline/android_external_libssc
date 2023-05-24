@@ -89,7 +89,7 @@ report_large_received (QmiClientSsc *self, QmiIndicationSscReportLargeOutput *ou
 	g_autoptr (GError) error = NULL;
 	GArray *protobuf = NULL;
 
-	if (!qmi_indication_ssc_report_large_output_get_protobuf_data (output, &protobuf, &error)) {
+	if (!qmi_indication_ssc_report_large_output_get_data (output, &protobuf, &error)) {
 		g_warning ("Cannot extract Protobuf data (large report): %s", error->message);
 		return;
 	}
@@ -104,7 +104,7 @@ report_small_received (QmiClientSsc *self, QmiIndicationSscReportSmallOutput *ou
 	g_autoptr (GError) error = NULL;
 	GArray *protobuf = NULL;
 
-	if (!qmi_indication_ssc_report_small_output_get_protobuf_data (output, &protobuf, &error)) {
+	if (!qmi_indication_ssc_report_small_output_get_data (output, &protobuf, &error)) {
 		g_warning ("Cannot extract Protobuf data (small report): %s", error->message);
 		return;
 	}
@@ -204,7 +204,7 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 		return;
 	}
 
-	if (!qmi_message_ssc_control_input_set_protobuf_data (input, buf, &error)) {
+	if (!qmi_message_ssc_control_input_set_data (input, buf, &error)) {
 		g_warning ("Inserting protobuf data failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
 		g_task_return_boolean (task, FALSE);
