@@ -196,8 +196,8 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	/* Build QMI message */
 	input = qmi_message_ssc_control_input_new ();
 
-	if (!qmi_message_ssc_control_input_set_unknown_value (input, SSC_QMI_REQUEST_UNKNOWN_VALUE, &error)) {
-		g_warning ("Inserting unknown value failed: %s", error->message);
+	if (!qmi_message_ssc_control_input_set_report_type (input, QMI_SSC_REPORT_TYPE_LARGE, &error)) {
+		g_warning ("Inserting report type failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
 		g_task_return_boolean (task, FALSE);
 		g_clear_object (&task);
