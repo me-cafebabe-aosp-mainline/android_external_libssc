@@ -41,6 +41,7 @@ compass_close_cb (SSCSensorCompass *self)
 static void compass_measurement (SSCSensorCompass *sensor, gfloat heading, gpointer user_data)
 {
 	g_printf ("Compass sensor measurement: %f °\n", heading);
+	fflush(stdout);
 }
 
 /*****************************************************************************/
@@ -62,6 +63,7 @@ magnetometer_close_cb (SSCSensorMagnetometer *self)
 static void magnetometer_measurement (SSCSensorMagnetometer *sensor, gfloat magnetic_field_x, gfloat magnetic_field_y, gfloat magnetic_field_z, gpointer user_data)
 {
 	g_printf ("Magnetometer sensor measurement: X=%f Y=%f Z=%f μT\n", magnetic_field_x, magnetic_field_y, magnetic_field_z);
+	fflush(stdout);
 }
 
 /*****************************************************************************/
@@ -83,6 +85,7 @@ accelerometer_close_cb (SSCSensorAccelerometer *self)
 static void accelerometer_measurement (SSCSensorAccelerometer *sensor, gfloat accel_x, gfloat accel_y, gfloat accel_z, gpointer user_data)
 {
 	g_printf ("Accelerometer sensor measurement: X=%f Y=%f Z=%f m/s²\n", accel_x, accel_y, accel_z);
+	fflush(stdout);
 }
 
 /*****************************************************************************/
@@ -104,6 +107,7 @@ light_close_cb (SSCSensorLight *self)
 static void light_measurement (SSCSensorLight *sensor, gfloat intensity, gpointer user_data)
 {
 	g_printf ("Light sensor measurement: %f Lux\n", intensity);
+	fflush(stdout);
 }
 
 /*****************************************************************************/
@@ -125,6 +129,7 @@ proximity_close_cb (SSCSensorProximity *self)
 static void proximity_measurement (SSCSensorProximity *sensor, gboolean near, gpointer user_data)
 {
 	g_printf ("Proximity sensor measurement: %s\n", near ? "NEAR" : "FAR");
+	fflush(stdout);
 }
 
 /*****************************************************************************/
