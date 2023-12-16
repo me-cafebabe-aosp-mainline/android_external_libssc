@@ -18,7 +18,7 @@
 
 #include "libssc-cli.h"
 
-#define ENABLE_SECONDS 10
+#define DEFAULT_ENABLE_SECONDS 10
 #define GENERAL_FAIL_EXIT_CODE -1
 #define INIT_FAIL_EXIT_CODE -2
 #define OPEN_FAIL_EXIT_CODE -3
@@ -137,10 +137,12 @@ int main(int argc, char *argv[])
 	gboolean print_version = FALSE;
 	gboolean debug = FALSE;
 	gchar *sensor_str = "";
+	gint64 timeout = DEFAULT_ENABLE_SECONDS;
 	const GOptionEntry options[] = {
 		{ "version", 0, 0, G_OPTION_ARG_NONE, &print_version, "Print version information and exit.", NULL },
 		{ "debug", 'v', 0, G_OPTION_ARG_NONE, &debug, "Enable debug logs.", NULL },
 		{ "sensor", 0, 0, G_OPTION_ARG_STRING, &sensor_str, "Enable a sensor. Supported sensors: 'proximity', 'light', 'accelerometer', 'magnetometer', 'compass'", NULL },
+		{ "timeout", 0, 0, G_OPTION_ARG_INT64, &timeout, "Number of seconds before this will timeout [default 10]", NULL },
 		{ NULL, 0, 0, G_OPTION_ARG_NONE, NULL, NULL, NULL }
 	};
 
@@ -181,7 +183,7 @@ int main(int argc, char *argv[])
 			g_printf ("Unable to open proximity sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
-		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)proximity_close_cb, proximity);
+		g_timeout_add_seconds (timeout, (GSourceFunc)proximity_close_cb, proximity);
 	} else if (g_strcmp0 (sensor_str, "light") == 0) {
 		SSCSensorLight *light = ssc_sensor_light_new_sync (NULL, &err);
 		if (!light) {
@@ -196,7 +198,7 @@ int main(int argc, char *argv[])
 			g_printf ("Unable to open light sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
-		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)light_close_cb, light);
+		g_timeout_add_seconds (timeout, (GSourceFunc)light_close_cb, light);
 	} else if (g_strcmp0 (sensor_str, "accelerometer") == 0) {
 		SSCSensorAccelerometer *accelerometer = ssc_sensor_accelerometer_new_sync (NULL, &err);
 		if (!accelerometer) {
@@ -211,7 +213,7 @@ int main(int argc, char *argv[])
 			g_printf ("Unable to open accelerometer sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
-		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)accelerometer_close_cb, accelerometer);
+		g_timeout_add_seconds (timeout, (GSourceFunc)accelerometer_close_cb, accelerometer);
 	} else if (g_strcmp0 (sensor_str, "magnetometer") == 0) {
 		SSCSensorMagnetometer *magnetometer = ssc_sensor_magnetometer_new_sync (NULL, &err);
 		if (!magnetometer) {
@@ -226,7 +228,7 @@ int main(int argc, char *argv[])
 			g_printf ("Unable to open magnetometer sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
-		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)magnetometer_close_cb, magnetometer);
+		g_timeout_add_seconds (timeout, (GSourceFunc)magnetometer_close_cb, magnetometer);
 	} else if (g_strcmp0 (sensor_str, "compass") == 0) {
 		SSCSensorCompass *compass = ssc_sensor_compass_new_sync (NULL, &err);
 		if (!compass) {
@@ -241,7 +243,7 @@ int main(int argc, char *argv[])
 			g_printf ("Unable to open compass sensor: %s\n", err ? err->message : "UNKNOWN");
 			return OPEN_FAIL_EXIT_CODE;
 		}
-		g_timeout_add_seconds (ENABLE_SECONDS, (GSourceFunc)compass_close_cb, compass);
+		g_timeout_add_seconds (timeout, (GSourceFunc)compass_close_cb, compass);
 	} else {
 		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer', 'compass'\n");
 		return GENERAL_FAIL_EXIT_CODE;
