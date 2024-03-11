@@ -28,3 +28,13 @@ message SscProximityResponse {
 	required int32 distance = 2;
 	required int32 accuracy = 3;
 }
+
+/*
+ * Proximity Sensor specific response data, as seen on Xiaomi Mi 9T / Redmi K20 (xiaomi-davinci).
+ * @data: measurement data, a C struct as raw bytes.
+ * @accuracy: how reliable the value is [0, 3]. Higher is more accurate, 0 is unreliable.
+ */
+message SscProximityResponseDavinci {
+	repeated bytes data = 1;
+	required int32 accuracy = 2;
+}

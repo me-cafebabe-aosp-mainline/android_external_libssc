@@ -97,7 +97,6 @@ emit_signal (gpointer user_data) {
 static void
 report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data)
 {
-	SscProximityResponse *msg = NULL;
 	SSCSensorProximity *sensor = SSC_SENSOR_PROXIMITY (user_data);
 	SSCSensorProximityPrivate *priv = NULL;
 	SignalContext *ctx = NULL;
@@ -110,19 +109,52 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		      SSC_SENSOR_UID_LOW, &sensor_uid_low,
 		      NULL);
 
-	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT_PROXIMITY) {
-		msg = ssc_proximity_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
-		priv = ssc_sensor_proximity_get_instance_private (sensor);
+	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low) {
+		/* Most devices use REPORT_MEASUREMENT_PROXIMITY */
+		if (msg_id == SSC_MSG_REPORT_MEASUREMENT_PROXIMITY) {
+			SscProximityResponse *msg = ssc_proximity_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+			priv = ssc_sensor_proximity_get_instance_private (sensor);
 
-		switch (msg->near) {
-			case SSC_SENSOR_PROXIMITY_NEAR:
-				near = true;
-				break;
-			case SSC_SENSOR_PROXIMITY_FAR:
-				near = false;
-				break;
-			default:
-				g_assert_not_reached ();
+			switch (msg->near) {
+				case SSC_SENSOR_PROXIMITY_NEAR:
+					near = true;
+					break;
+				case SSC_SENSOR_PROXIMITY_FAR:
+					near = false;
+					break;
+				default:
+					g_assert_not_reached ();
+			}
+
+			ssc_proximity_response__free_unpacked (msg, NULL);
+		/* xiaomi-davinci uses REPORT_MEASUREMENT and its own proximity response */
+		} else if (msg_id == SSC_MSG_REPORT_MEASUREMENT) {
+			SscProximityResponseDavinci *msg = ssc_proximity_response_davinci__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+			ProximityDataDavinci data;
+			priv = ssc_sensor_proximity_get_instance_private (sensor);
+
+			if (msg->data->len != sizeof(ProximityDataDavinci)) {
+				/* Not observed and unlikely to ever happen due to reserved fields in the data struct */
+				ssc_proximity_response_davinci__free_unpacked (msg, NULL);
+				return;
+			}
+
+			memcpy(&data, msg->data->data, sizeof(ProximityDataDavinci));
+
+			switch ((int)data.near) {
+				case SSC_SENSOR_PROXIMITY_NEAR:
+					near = true;
+					break;
+				case SSC_SENSOR_PROXIMITY_FAR:
+					near = false;
+					break;
+				default:
+					g_assert_not_reached ();
+			}
+
+			ssc_proximity_response_davinci__free_unpacked (msg, NULL);
+		} else {
+			return;
 		}
 
 		/* Only emit signal when measurement actually changed */
@@ -135,8 +167,6 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			ctx->near = near;
 			g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, emit_signal, ctx, (GDestroyNotify)signal_context_free);
 		}
-
-		ssc_proximity_response__free_unpacked (msg, NULL);
 	}
 }
 
