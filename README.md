@@ -1,6 +1,6 @@
 # libssc
 
-Libssc is a library to <b>expose the sensors</b> managed by the <b>Qualcomm Sensor Core</b>
+`libssc` is a library to <b>expose the sensors</b> managed by the <b>Qualcomm Sensor Core</b>
 found in many Qualcomm System-on-Chips (SoCs) from 2018 and onwards. 
 
 Qualcomm SoCs feature a Sensor Lower Power Island (SLPI)
@@ -23,6 +23,20 @@ endorsement or affiliation between QUALCOMM Incorporated and the libssc project.
 
 General information about libssc, documentation, and other information can be found at
 [https://dylanvanassche.codeberg.page/libssc/](https://dylanvanassche.codeberg.page/libssc/).
+
+## Building
+
+`libssc` uses the Meson build system with a minimal list of external dependencies:
+
+- `libqmi >=1.33.4`
+- `glib >= 2.56`
+- `protobuf-c`
+
+```
+cd build
+meson ..
+ninja
+```
 
 ## License
 
