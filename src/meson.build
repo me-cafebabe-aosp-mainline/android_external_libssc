@@ -62,7 +62,7 @@ cli_sources = files(
 )
 
 libssc = library(
-  'libssc',
+  'ssc',
   sources: sources,
   include_directories: includes,
   dependencies: deps,
