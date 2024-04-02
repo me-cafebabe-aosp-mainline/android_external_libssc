@@ -22,7 +22,7 @@ endorsement or affiliation between QUALCOMM Incorporated and the libssc project.
 ## Documentation
 
 General information about libssc, documentation, and other information can be found at
-[https://dylanvanassche.codeberg.page/libssc/](https://dylanvanassche.codeberg.page/libssc/).
+[https://libssc.dylanvanassche.be](https://libssc.dylanvanassche.be).
 
 ## Building
 
