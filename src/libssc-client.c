@@ -338,6 +338,7 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 
 	priv->bus = qrtr_bus_new_finish (res, &error);
 	if (error) {
+		g_warning ("QRTR bus unavailable. Make sure access to AF_QIPCRTR address family is granted.");
 		g_task_return_error (task, error);
 		g_clear_object (&task);
 		return;
@@ -400,6 +401,11 @@ ssc_client_dispose (GObject *object)
 	SSCClientPrivate *priv = NULL;
 
 	priv = ssc_client_get_instance_private (SSC_CLIENT (object));
+
+	if (!priv->qmi_client_ssc) {
+		g_warning ("No SSC QMI client to release.");
+		return;
+	}
 
 	g_debug ("Releasing SSC QMI client");
 	g_assert_nonnull (priv->qmi_client_ssc);
