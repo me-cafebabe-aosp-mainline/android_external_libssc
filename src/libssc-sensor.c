@@ -77,7 +77,7 @@ static void
 sensor_close_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 {
 	GTask *task = G_TASK (user_data);
-	g_autoptr (GError) error = NULL;
+	GError *error = NULL;
 
 	if (!ssc_client_send_finish (self, result, &error)) {
 		g_task_return_error (task, error);
@@ -139,7 +139,7 @@ static void
 sensor_open_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 {
 	GTask *task = G_TASK (user_data);
-	g_autoptr (GError) error = NULL;
+	GError *error = NULL;
 
 	if (!ssc_client_send_finish (self, result, &error)) {
 		g_task_return_error (task, error);
@@ -389,7 +389,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 static void
 attribute_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 {
-	g_autoptr(GError) error = NULL;
+	g_autoptr (GError) error = NULL;
 
 	if (!ssc_client_send_finish (self, result, &error)) {
 		g_warning ("Sensor attribute request failed: %s", error->message);
@@ -432,7 +432,7 @@ attribute (SSCSensor *self, GTask *task)
 static void
 discovery_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 {
-	g_autoptr(GError) error = NULL;
+	GError *error = NULL;
 	GTask *task = G_TASK (user_data);
 
 	if (!ssc_client_send_finish (self, result, &error)) {
@@ -489,7 +489,7 @@ client_ready (SSCClient *client, GAsyncResult *result, gpointer user_data)
 	GTask *task = G_TASK (user_data);
 	ReportReceivedContext *ctx = NULL;
 	SSCSensorPrivate *priv = NULL;
-	g_autoptr (GError) error = NULL;
+	GError *error = NULL;
 	SSCSensor *self = NULL;
 
 	self = g_task_get_source_object (task);

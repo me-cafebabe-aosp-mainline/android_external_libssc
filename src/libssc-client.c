@@ -115,9 +115,9 @@ report_small_received (QmiClientSsc *self, QmiIndicationSscReportSmallOutput *ou
 static void
 request_ready (QmiClientSsc *self, GAsyncResult *res, gpointer user_data)
 {
+	GError *error = NULL;
+	GTask *task = G_TASK (user_data);
 	QmiMessageSscControlOutput *output = NULL;
-	g_autoptr (GError) 	    error = NULL;
-	GTask                      *task = G_TASK (user_data);
 
 	output = qmi_client_ssc_control_finish (self, res, &error);
 	if (!output) {
@@ -148,15 +148,15 @@ ssc_client_send_finish (SSCClient *self, GAsyncResult *res, GError **error)
 void
 ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 message_id, GArray *protobuf, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
-	GTask                     *task = NULL;
+	GTask *task = NULL;
+	GError *error = NULL;
 	QmiMessageSscControlInput *input = NULL;
-	g_autoptr (GError)	   error = NULL;
-	g_autoptr (GArray)    	   buf = NULL;
-	SscClientRequestBody       body_msg;
-	SscClientConfig            config_msg;
-	SscClientRequest           client_msg;
-	SscUid                     uid_msg;
-	SSCClientPrivate	  *priv = NULL;
+	SSCClientPrivate *priv = NULL;
+	g_autoptr (GArray) buf = NULL;
+	SscClientRequestBody body_msg;
+	SscClientConfig config_msg;
+	SscClientRequest client_msg;
+	SscUid uid_msg;
 
 	task = g_task_new (self, cancellable, callback, user_data);
 	buf = g_array_new (FALSE, FALSE, 1);
@@ -228,7 +228,7 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 static void
 allocate_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 {
-	g_autoptr(GError) error = NULL;
+	GError *error = NULL;
 	GTask *task = NULL;
 	SSCClient *client = NULL;
 	SSCClientPrivate *priv = NULL;
@@ -263,7 +263,7 @@ allocate_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_da
 static void
 device_open_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 {
-	g_autoptr(GError) error = NULL;
+	GError *error = NULL;
 	GTask *task = NULL;
 
 	task = G_TASK (user_data);
@@ -291,7 +291,7 @@ static void
 device_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 {
 	QmiDeviceOpenFlags open_flags = QMI_DEVICE_OPEN_FLAGS_NONE;
-	g_autoptr(GError) error = NULL;
+	GError *error = NULL;
 	GTask *task = NULL;
 	SSCClient *client = NULL;
 	SSCClientPrivate *priv = NULL;
@@ -325,7 +325,7 @@ device_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 static void
 bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 {
-	g_autoptr(GError) error = NULL;
+	GError *error = NULL;
 	QrtrNode *node = NULL;
 	GTask *task = NULL;
 	SSCClient *client = NULL;
@@ -380,13 +380,13 @@ static void
 release_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
 {
 	g_autoptr (GError) error = NULL;
-	SSCClientPrivate *priv = NULL;
 	GObject *object = G_OBJECT (user_data);
+	SSCClientPrivate *priv = NULL;
 
 	priv = ssc_client_get_instance_private (SSC_CLIENT (object));
 
 	if (!qmi_device_release_client_finish (device, result, &error))
-		g_printerr ("error: couldn't release SSC QMI client: %s\n", error->message);
+		g_warning ("error: couldn't release SSC QMI client: %s\n", error->message);
 
 	g_clear_object (&priv->qmi_client_ssc);
 	g_clear_object (&priv->device);
