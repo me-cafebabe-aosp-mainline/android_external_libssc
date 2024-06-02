@@ -38,6 +38,12 @@ meson ..
 ninja
 ```
 
+## Lockdown
+
+Systemd features a lockdown feature to reduce access to resources for services.
+If `libssc` is used in a service such as `iio-sensor-proxy`, make sure access to the address family `AF_QIPCRTR`
+otherwise access to the QRTR bus is prohibited.
+
 ## License
 
 Available under the [GPLv3 license](./LICENSE).<br>
