@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Ownership of GError is now properly performed when using GTasks.
 - Handle access denied to address family AF_QIPCRTR in lockdown mode.
+- Fix verbose argument for enabling debug mode in ssccli.
 
 ## [0.1.5] - 2024-05-17
 

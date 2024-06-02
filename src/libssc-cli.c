@@ -164,15 +164,18 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	g_info("libssc %d.%d.%d starting", LIBSSC_MAJOR_VERSION, LIBSSC_MINOR_VERSION, LIBSSC_PATCH_VERSION);
-
 	/* Enable debug logs if requested */
 	if (debug) {
-		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
+		if (!g_setenv ("G_MESSAGES_DEBUG", "all", TRUE)) {
+			g_warning ("Failed to enable debug logs");
+			return EXIT_FAILURE;
+		}
 		qmi_utils_set_traces_enabled (TRUE);
         	qmi_utils_set_show_personal_info (TRUE);
 		g_debug ("Debug messages enabled");
 	}
+
+	g_info("libssc %d.%d.%d starting", LIBSSC_MAJOR_VERSION, LIBSSC_MINOR_VERSION, LIBSSC_PATCH_VERSION);
 
 	if (g_strcmp0 (sensor_str, "proximity") == 0) {
 		SSCSensorProximity *proximity = ssc_sensor_proximity_new_sync (NULL, &err);
