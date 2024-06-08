@@ -223,10 +223,20 @@ ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable
 	g_warn_if_fail (priv->loop);
 	g_warn_if_fail (priv->thread);
 
-	/* Stop report context thread before re-acquiring our context */
-	g_main_loop_quit (priv->loop);
-	g_main_loop_unref(priv->loop);
-	g_thread_join (priv->thread);
+	/*
+	 * Stop report context thread before re-acquiring our context.
+	 * Test if loop and thread was initialized since opening and closing
+	 * the sensor quickly may cause a race condition where the thread
+	 * did not run yet.
+	 */
+	if (priv->loop) {
+		g_main_loop_quit (priv->loop);
+		g_main_loop_unref (priv->loop);
+	}
+
+	if (priv->thread)
+		g_thread_join (priv->thread);
+
 
 	/* Take over context and close sensor */
 	g_main_context_push_thread_default (priv->context);
