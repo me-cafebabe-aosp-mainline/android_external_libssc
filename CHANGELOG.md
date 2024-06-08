@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.i6] - 2024-06-08
+
 ### Fixed
 - Ownership of GError is now properly performed when using GTasks.
 - Handle access denied to address family AF_QIPCRTR in lockdown mode.
@@ -70,3 +72,4 @@ Initial release.
 [0.1.3]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.2...0.1.3
 [0.1.4]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.3...0.1.4
 [0.1.5]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.4...0.1.5
+[0.1.6]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.5...0.1.6
