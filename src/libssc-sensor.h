@@ -35,6 +35,13 @@ typedef struct _SSCClient SSCClient;
 
 G_DECLARE_DERIVABLE_TYPE (SSCSensor, ssc_sensor, SSC, SENSOR, GObject);
 
+typedef enum {
+	SSC_SENSOR_ERROR_UNAVAILABLE,
+	SSC_SENSOR_ERROR_SAMPLE_RATE_UNAVAILABLE,
+} SSCSensorError;
+
+GQuark ssc_sensor_error_quark(void);
+
 #define SSC_SENSOR_UID_LOW "uid-low"
 #define SSC_SENSOR_UID_HIGH "uid-high"
 #define SSC_SENSOR_NAME "name"

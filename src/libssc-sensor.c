@@ -65,6 +65,16 @@ attribute (SSCSensor *self, GTask *task);
 static void
 report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_low, GArray *buf, gpointer user_data);
 
+GQuark ssc_sensor_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (!quark)
+    quark = g_quark_from_static_string("ssc-sensor");
+
+  return quark;
+}
+
 /*****************************************************************************/
 
 static gboolean
@@ -82,7 +92,7 @@ sensor_close_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 	if (!ssc_client_send_finish (self, result, &error)) {
 		g_task_return_error (task, error);
 		g_clear_object (&task);
-		g_warning ("Sensor disable request failed: %s", error->message);
+		g_debug ("Sensor disable request failed: %s", error->message);
 		return;
 	}
 
@@ -144,7 +154,7 @@ sensor_open_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 	if (!ssc_client_send_finish (self, result, &error)) {
 		g_task_return_error (task, error);
 		g_clear_object (&task);
-		g_warning ("Sensor enable request failed: %s", error->message);
+		g_debug ("Sensor enable request failed: %s", error->message);
 		return;
 	}
 
@@ -160,13 +170,15 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 	g_autoptr (GArray) buf = NULL;
 	ReportReceivedContext *ctx;
 	guint32 msg_id;
+	GError *error = NULL;
 
 	priv = ssc_sensor_get_instance_private (self);
 	task = g_task_new (self, cancellable, callback, user_data);
 
 	if (!priv->available) {
-		g_warning ("Cannot open sensor, unavailable");
-		g_task_return_boolean (task, FALSE);
+		g_set_error (&error, ssc_sensor_error_quark(), SSC_SENSOR_ERROR_UNAVAILABLE,
+			     "Cannot open sensor, unavailable");
+		g_task_return_error (task, error);
 		g_object_unref (task);
 		return;
 	}
@@ -181,8 +193,9 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 		ssc_enable_config_request__init (&msg);
 
 		if (priv->sample_rate <= 0.0) {
-			g_warning ("Sample rate unavailable");
-			g_task_return_boolean (task, FALSE);
+			g_set_error (&error, ssc_sensor_error_quark(), SSC_SENSOR_ERROR_SAMPLE_RATE_UNAVAILABLE,
+				     "Sensor sample rate is unavailable");
+			g_task_return_error (task, error);
 			g_object_unref (task);
 			return;
 		}
@@ -724,7 +737,6 @@ ssc_sensor_init (SSCSensor *self)
 	SSCSensorPrivate *priv = NULL;
 
 	priv = ssc_sensor_get_instance_private (self);
-
 
 	priv->name = NULL;
 	priv->vendor = NULL;
