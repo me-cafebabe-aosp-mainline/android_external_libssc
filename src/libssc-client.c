@@ -403,7 +403,7 @@ ssc_client_dispose (GObject *object)
 	priv = ssc_client_get_instance_private (SSC_CLIENT (object));
 
 	if (!priv->qmi_client_ssc) {
-		g_warning ("No SSC QMI client to release.");
+		g_debug ("No SSC QMI client to release.");
 		return;
 	}
 
