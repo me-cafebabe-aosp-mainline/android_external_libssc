@@ -45,7 +45,7 @@ version_conf.set('LIBSSC_PATCH_VERSION', libssc_version_patch)
 pkg = import('pkgconfig')
 
 libssc_includedir = get_option('includedir')
-libssc_glib_include_subdir = libssc_name + '-glib'
+libssc_glib_include_subdir = libssc_name
 libssc_glib_pkgincludedir = libssc_includedir / libssc_glib_include_subdir
 
 cc = meson.get_compiler('c')

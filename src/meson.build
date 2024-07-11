@@ -84,7 +84,7 @@ ns = 'SSC'
 pkg.generate(
   libraries: libssc,
   version: libssc_version,
-  name: 'libssc-glib',
+  name: 'libssc',
   description: 'Library to access sensors of Qualcomm Sensor Core',
   subdirs: libssc_glib_include_subdir,
   requires: ['glib-2.0', 'gobject-2.0', 'gio-2.0', 'qmi-glib'],
