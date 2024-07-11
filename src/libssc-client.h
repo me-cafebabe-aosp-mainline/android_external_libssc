@@ -40,13 +40,10 @@ typedef struct _SSCSensor SSCSensor;
 
 G_DECLARE_FINAL_TYPE (SSCClient, ssc_client, SSC, CLIENT, GObject);
 
-//typedef enum {
-//	LIBSSC_ERROR_QRTR,
-//	LIBSSC_ERROR_PROTOBUF,
-//	LIBSSC_ERROR_LOOKUP,
-//} SSCError;
-//G_DEFINE_QUARK(ssc-error-quark, ssc_error)
-//#define LIBSSC_ERROR (ssc_error_quark())
+typedef enum {
+	SSC_CLIENT_ERROR_PROTOBUF,
+	SSC_CLIENT_ERROR_LOOKUP,
+} SSCClientError;
 
 #define SSC_PROCESSOR_APSS		1
 #define SSC_SUSPEND_MODE_WAKEUP		0

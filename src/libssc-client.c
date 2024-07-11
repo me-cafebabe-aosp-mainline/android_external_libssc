@@ -47,6 +47,17 @@ typedef struct _SSCClient {
 	SSCClientPrivate *priv;
 } SSCClient;
 
+GQuark ssc_client_error_quark (void)
+{
+  static GQuark quark = 0;
+
+  if (!quark)
+    quark = g_quark_from_static_string("ssc-client");
+
+  return quark;
+}
+
+
 static void async_initable_iface_init (GAsyncInitableIface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (SSCClient, ssc_client, G_TYPE_OBJECT,
@@ -187,8 +198,9 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	ssc_client_request__pack (&client_msg, (unsigned char*) buf->data);
 
 	if (buf == NULL) {
-		g_warning ("Protobuf message couldn't be build for SUID sensor");
-		g_task_return_boolean (task, FALSE);
+		g_set_error (&error, ssc_client_error_quark(), SSC_CLIENT_ERROR_PROTOBUF,
+			     "Protobuf message couldn't be build for SUID sensor");
+		g_task_return_error (task, error);
 		g_clear_object (&task);
 		return;
 	}
@@ -197,17 +209,17 @@ ssc_client_send (SSCClient *self, guint64 uid_high, guint64 uid_low, guint32 mes
 	input = qmi_message_ssc_control_input_new ();
 
 	if (!qmi_message_ssc_control_input_set_report_type (input, QMI_SSC_REPORT_TYPE_LARGE, &error)) {
-		g_warning ("Inserting report type failed: %s", error->message);
+		g_debug ("Inserting report type failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
-		g_task_return_boolean (task, FALSE);
+		g_task_return_error (task, error);
 		g_clear_object (&task);
 		return;
 	}
 
 	if (!qmi_message_ssc_control_input_set_data (input, buf, &error)) {
-		g_warning ("Inserting protobuf data failed: %s", error->message);
+		g_debug ("Inserting protobuf data failed: %s", error->message);
 		qmi_message_ssc_control_input_unref (input);
-		g_task_return_boolean (task, FALSE);
+		g_task_return_error (task, error);
 		g_clear_object (&task);
 		return;
 	}
@@ -355,8 +367,10 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	}
 
 	if (!found) {
-		g_warning ("Service SSC not found");
-		g_task_return_boolean (task, FALSE);
+		g_debug ("Service SSC not found");
+		g_set_error (&error, ssc_client_error_quark(), SSC_CLIENT_ERROR_LOOKUP,
+			     "SSC QMI Service not found");
+		g_task_return_error (task, error);
 		g_clear_object (&task);
 		return;
 	}
@@ -386,7 +400,7 @@ release_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_dat
 	priv = ssc_client_get_instance_private (SSC_CLIENT (object));
 
 	if (!qmi_device_release_client_finish (device, result, &error))
-		g_warning ("error: couldn't release SSC QMI client: %s\n", error->message);
+		g_warning ("Could not release SSC QMI client: %s\n", error->message);
 
 	g_clear_object (&priv->qmi_client_ssc);
 	g_clear_object (&priv->device);
@@ -442,7 +456,7 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 		return;
 	}
 # else
-	g_warning ("Only QRTR QMI devices are supported. Compile libqmi with QRTR support");
+	g_debug ("Only QRTR QMI devices are supported. Compile libqmi with QRTR support");
 	g_task_return_boolean (task, FALSE);
 	g_clear_object (&task);
 	return;
