@@ -30,6 +30,7 @@ typedef struct _SSCSensorProximityPrivate {
 	GThread *thread;
 	GMainLoop *loop;
 	gboolean near;
+	gboolean reported_once;
 } SSCSensorProximityPrivate;
 
 G_DEFINE_TYPE_WITH_CODE (SSCSensorProximity, ssc_sensor_proximity, SSC_TYPE_SENSOR,
@@ -157,9 +158,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			return;
 		}
 
-		/* Only emit signal when measurement actually changed */
-		if (priv->near != near) {
+		/* Only emit signal when measurement actually changed or if the sensor was recently opened */
+		if (priv->near != near || !priv->reported_once) {
 			priv->near = near;
+			priv->reported_once = TRUE;
 
 			/* Emit signal in main context instead of thread's context */
 			ctx = g_slice_new0 (SignalContext);
@@ -282,10 +284,14 @@ ssc_sensor_proximity_open_finish (SSCSensorProximity *self, GAsyncResult *result
 void
 ssc_sensor_proximity_open (SSCSensorProximity *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
+	SSCSensorProximityPrivate *priv = NULL;
 	GTask *task = NULL;
 
 	g_assert (SSC_SENSOR_CLASS (ssc_sensor_proximity_parent_class)->open &&
 		  SSC_SENSOR_CLASS (ssc_sensor_proximity_parent_class)->open_finish);
+
+	priv = ssc_sensor_proximity_get_instance_private (self);
+	priv->reported_once = FALSE;
 
 	task = g_task_new (self, cancellable, callback, user_data);
 
@@ -354,6 +360,9 @@ ssc_sensor_proximity_new_finish (GAsyncResult *result, GError **error)
 	}
 
 	priv = ssc_sensor_proximity_get_instance_private (SSC_SENSOR_PROXIMITY (sensor));
+
+	/* Only bypass reporting once if the sensor is opened, not during initialization */
+	priv->reported_once = TRUE;
 
 	/* Start listening for reports */
 	g_object_get (SSC_SENSOR (sensor),
