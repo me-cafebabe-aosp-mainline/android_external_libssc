@@ -27,8 +27,8 @@
 #include <sys/stat.h>
 #include <gio/gio.h>
 #include <libqmi-glib.h>
-#include "libssc-client.h"
-#include "libssc-version.h"
+#include "libssc-client-private.h"
+#include "libssc-version-private.h"
 #include "libssc-sensor.h"
 #include "libssc-sensor-proximity.h"
 #include "libssc-sensor-light.h"

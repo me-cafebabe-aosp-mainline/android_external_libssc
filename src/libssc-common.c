@@ -16,7 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libssc-common.h"
+#include "libssc-common-private.h"
 
 void
 ssc_common_dump_protobuf (GArray *protobuf)

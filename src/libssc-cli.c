@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libssc-cli.h"
+#include "libssc-cli-private.h"
 
 #define DEFAULT_ENABLE_SECONDS 10
 #define GENERAL_FAIL_EXIT_CODE -1

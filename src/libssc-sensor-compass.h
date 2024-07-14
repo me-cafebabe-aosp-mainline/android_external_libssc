@@ -21,11 +21,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include <math.h>
-#include "libssc-client.h"
-#include "libssc-common.h"
 #include "libssc-sensor.h"
-#include "ssc-sensor-rotationvector.pb-c.h"
 
 #define SSC_TYPE_SENSOR_COMPASS (ssc_sensor_compass_get_type())
 

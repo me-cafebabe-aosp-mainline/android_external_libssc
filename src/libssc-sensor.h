@@ -21,10 +21,6 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include "libssc-client.h"
-#include "libssc-common.h"
-#include "ssc-common.pb-c.h"
-#include "ssc-sensor-suid.pb-c.h"
 
 G_BEGIN_DECLS
 

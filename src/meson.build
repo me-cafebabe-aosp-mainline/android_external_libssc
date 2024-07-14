@@ -20,29 +20,18 @@
 libssc_glib_inc = include_directories('.')
 
 version_header = configure_file(
-  input: 'libssc-version.h.in',
+  input: 'libssc-version-private.h.in',
   output: '@BASENAME@',
   configuration: version_conf,
   install_dir: libssc_glib_pkgincludedir,
 )
 
 headers += files(
-  'libssc-common.h',
-  'libssc-client.h',
-  'libssc-sensor.h',
-  'libssc-sensor-proximity.h',
-  'libssc-sensor-light.h',
-  'libssc-sensor-accelerometer.h',
-  'libssc-sensor-magnetometer.h',
-  'libssc-sensor-compass.h',
-)
-
-cli_headers = files(
-  'libssc-cli.h',
+  'libssc.h'
 )
 
 install_headers(
-  headers + cli_headers, 
+  headers, 
   install_dir: libssc_glib_pkgincludedir
 )
 

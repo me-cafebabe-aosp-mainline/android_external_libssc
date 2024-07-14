@@ -16,6 +16,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
+#include "libssc-client-private.h"
+#include "libssc-common-private.h"
+#include "ssc-sensor-rotationvector.pb-c.h"
 #include "libssc-sensor-compass.h"
 
 enum {

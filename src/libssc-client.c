@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libssc-client.h"
+#include "libssc-client-private.h"
 
 enum {
 	SIGNAL_REPORT,

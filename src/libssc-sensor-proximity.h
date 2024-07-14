@@ -21,14 +21,8 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include "libssc-client.h"
-#include "libssc-common.h"
 #include "libssc-sensor.h"
-#include "ssc-common.pb-c.h"
-#include "ssc-sensor-proximity.pb-c.h"
 
-#define SSC_SENSOR_PROXIMITY_NEAR	1
-#define SSC_SENSOR_PROXIMITY_FAR	0
 #define SSC_TYPE_SENSOR_PROXIMITY (ssc_sensor_proximity_get_type())
 
 /* 

@@ -16,7 +16,14 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "ssc-common.pb-c.h"
+#include "ssc-sensor-proximity.pb-c.h"
+#include "libssc-client-private.h"
+#include "libssc-common-private.h"
 #include "libssc-sensor-proximity.h"
+
+#define SSC_SENSOR_PROXIMITY_NEAR	1
+#define SSC_SENSOR_PROXIMITY_FAR	0
 
 enum {
 	SIGNAL_MEASUREMENT,

@@ -16,6 +16,10 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "libssc-client-private.h"
+#include "libssc-common-private.h"
+#include "ssc-common.pb-c.h"
+#include "ssc-sensor-suid.pb-c.h"
 #include "libssc-sensor.h"
 
 enum {

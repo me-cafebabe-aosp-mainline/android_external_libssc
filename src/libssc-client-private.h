@@ -27,7 +27,7 @@
 #include <gio/gio.h>
 #include <libqmi-glib.h>
 #include <stdbool.h>
-#include "libssc-common.h"
+#include "libssc-common-private.h"
 #include "libssc-sensor.h"
 #include "ssc-common.pb-c.h"
 

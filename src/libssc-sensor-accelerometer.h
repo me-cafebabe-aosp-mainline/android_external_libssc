@@ -21,11 +21,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
-#include "libssc-client.h"
-#include "libssc-common.h"
 #include "libssc-sensor.h"
-#include "ssc-common.pb-c.h"
-#include "ssc-sensor-accelerometer.pb-c.h"
 
 #define SSC_TYPE_SENSOR_ACCELEROMETER (ssc_sensor_accelerometer_get_type())
 
