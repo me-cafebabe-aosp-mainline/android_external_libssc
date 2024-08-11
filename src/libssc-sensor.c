@@ -495,7 +495,7 @@ discover (SSCSensor *self, GTask *task)
 			 buf,
 			 g_task_get_cancellable (task),
 			 (GAsyncReadyCallback)discovery_ready,
-			 NULL); 
+			 task); 
 }
 
 /*****************************************************************************/
