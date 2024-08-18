@@ -33,16 +33,27 @@ headers_gen = []
 
 foreach m: msgs
   name = 'ssc-' + m
-  protobuf_gen = custom_target (
-    name,
+  # C
+  protobuf_c_gen = custom_target (
+    name + '_c',
     input: name + '.proto',
     output: [name + '.pb-c.c', name + '.pb-c.h'],
     command: [protoc_tool, '--proto_path=@CURRENT_SOURCE_DIR@', '--c_out=@OUTDIR@', '@INPUT@'],
     install: true,
     install_dir: [false, libssc_glib_pkgincludedir]
   )
-  sources_gen += protobuf_gen[0]
-  headers_gen += protobuf_gen[1]
+  sources_gen += protobuf_c_gen[0]
+  headers_gen += protobuf_c_gen[1]
+
+  # Python
+  protobuf_python_gen = custom_target (
+    name + '_py',
+    input: name + '.proto',
+    output: [name + '_pb2.py'],
+    command: [protoc_tool, '-I=@CURRENT_SOURCE_DIR@', '--python_out=mocking', '@INPUT@'],
+    install: true,
+    install_dir: [libssc_mocking_dir]
+  )
 endforeach
 
 generated_dep = declare_dependency(

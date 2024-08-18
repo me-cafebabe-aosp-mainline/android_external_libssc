@@ -47,6 +47,7 @@ pkg = import('pkgconfig')
 libssc_includedir = get_option('includedir')
 libssc_glib_include_subdir = libssc_name
 libssc_glib_pkgincludedir = libssc_includedir / libssc_glib_include_subdir
+libssc_mocking_dir = 'mocking'
 
 cc = meson.get_compiler('c')
 cc_flags = cc.get_supported_arguments([
@@ -95,4 +96,4 @@ headers = files()
 
 subdir('data')
 subdir('src')
-
+subdir('mocking')
