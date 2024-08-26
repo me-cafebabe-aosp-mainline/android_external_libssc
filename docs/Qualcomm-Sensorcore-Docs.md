@@ -119,6 +119,8 @@ Thanks to a [-emainline blogpost](http://If we translate the QMI message using t
 - `22 00` = msg_id (uint16)
 - `53 00` = msg_length (uint16)
 
+Header is 7 bytes long.
+
 Here is the QMI message an indication. That means that the message doesn't expect a reply. Other possibilities are QMI REQUEST and QMI RESPONSE.
 
 **TLV1**
@@ -943,7 +945,7 @@ enum {
 	SENSOR_NAME = 0, # obvious: name of sensor as string
 	SENSOR_MANUFACTURER = 1, # obvious: name of manufacturer as string
 	SENSOR_DATATYPE = 2, # probably the sensor datatype as string
-	SENSOR_UNKNOWN1 = 3,
+	SENSOR_AVAILABLE = 3,
 	SENSOR_UNKNOWN2 = 4,
 	SENSOR_PROTOFILE = 5, # matches with SENSOR_DATATYPE, so probably right
 	SENSOR_AVAILABLE_RANGES = 6, # confirms hypothesis from above that this is available ranges
@@ -956,7 +958,7 @@ enum {
 	SENSOR_UNKNOWN7 = 13,
 	SENSOR_UNKNOWN8 = 14,
 	SENSOR_UNKNOWN9 = 15,
-	SENSOR_UNKNOWN10 = 16,
+	SENSOR_STREAM_TYPE = 16,
 	SENSOR_UNKNOWN11 = 17,
 	SENSOR_UNKNOWN12 = 18,
 	SENSOR_UNKNOWN13 = 19,
@@ -970,6 +972,10 @@ enum {
 }
 ```
 
+Stream type can be:
+
+- Continuous `0`
+- On change `1`
 
 ### FastRPC messages
 
