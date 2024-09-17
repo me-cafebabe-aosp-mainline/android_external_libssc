@@ -119,11 +119,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		if (msg->n_intensity >= 1) {
 			intensity = msg->intensity[0];
 
-			/* Emit signal in main context instead of thread's context */
-			ctx = g_slice_new0 (SignalContext);
-			ctx->sensor = sensor;
-			ctx->intensity = intensity;
-			g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, emit_signal, ctx, (GDestroyNotify)signal_context_free);
+			/* Emit signal in main context instead of thread's context if intensity is positive */
+			if (intensity >= 0.0) {
+				ctx = g_slice_new0 (SignalContext);
+				ctx->sensor = sensor;
+				ctx->intensity = intensity;
+				g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, emit_signal, ctx, (GDestroyNotify)signal_context_free);
+			}
 		}
 
 		ssc_light_response__free_unpacked (msg, NULL);
