@@ -121,8 +121,8 @@ class SSCMockingServer():
             reply_msg = ' '.join(list(map(hex, buf)))
             self._debug(f'📤 Indication MSG ({SSC_SERVICE_ID}@[{node.value}:{port.value}] {len(buf)} bytes): {reply_msg}')
 
-            # Send measurements at 1 Hz
-            time.sleep(1)
+            # Send measurements at 10 Hz
+            time.sleep(0.1)
             index += 1
 
     def _reply_msg(self, node: int, port: int, incoming_msg: list):
