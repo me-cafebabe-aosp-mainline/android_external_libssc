@@ -263,25 +263,24 @@ class SSC():
         data = SSC._read_data()
         uid_high = None
         uid_low = None
+        supported = False
 
         for entry in data:
             sensor = entry['sensor']
             if sensor['data_type'] == data_type:
                 uid_high = int(sensor['uid_high'], 16)
                 uid_low = int(sensor['uid_low'], 16)
+                supported = True
                 break
-
-        if uid_high is None or uid_low is None:
-            raise NotImplementedError(f'No sensor for data type {data_type}')
 
         # Generate discovery response 
         suid_response = SensorSuid.SscSuidResponse()
-        suid_response.data_type = sensor['data_type']
-
-        sensor_uid = SscCommon.SscUid()
-        sensor_uid.high = uid_high
-        sensor_uid.low = uid_low
-        suid_response.uid.append(sensor_uid)
+        suid_response.data_type = data_type
+        if supported and uid_high is not None and uid_low is not None:
+            sensor_uid = SscCommon.SscUid()
+            sensor_uid.high = uid_high
+            sensor_uid.low = uid_low
+            suid_response.uid.append(sensor_uid)
 
         # Protobuf envelope to pack discovery message
         client_response_body = SscCommon.SscClientResponseBody()
