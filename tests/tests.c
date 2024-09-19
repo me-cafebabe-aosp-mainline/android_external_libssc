@@ -439,6 +439,82 @@ test_libssc_sensor_magnetometer(void)
 	/* Run main loop to process signals and timers */
 	g_main_loop_run (loop);
 }
+
+static void
+sensor_unavailable_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+	GError *error = NULL;
+	SSCSensor *sensor = NULL;
+
+	sensor = ssc_sensor_new_finish (result, &error);
+	g_assert_true (sensor == NULL);
+
+	g_main_loop_quit (loop);
+}
+
+static void
+test_libssc_sensor_unavailable(void)
+{
+	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+
+	/* Create a sensor which is unavailable according to attribute */
+	ssc_sensor_new ("unavailable", NULL, (GAsyncReadyCallback) sensor_unavailable_ready, loop);
+
+	/* Run main loop to process signals and timers */
+	g_main_loop_run (loop);
+}
+
+static void
+sensor_unsupported_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+	GError *error = NULL;
+	SSCSensor *sensor = NULL;
+
+	sensor = ssc_sensor_new_finish (result, &error);
+	g_assert_true (sensor == NULL);
+
+	g_main_loop_quit (loop);
+}
+
+static void
+test_libssc_sensor_unsupported(void)
+{
+	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+
+	/* Discover a sensor which is unsupported by DSP */
+	ssc_sensor_new ("unsupported", NULL, (GAsyncReadyCallback) sensor_unsupported_ready, loop);
+
+	/* Run main loop to process signals and timers */
+	g_main_loop_run (loop);
+}
+
+static void
+sensor_no_sample_rate_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+	GError *error = NULL;
+	SSCSensor *sensor = NULL;
+
+	sensor = ssc_sensor_new_finish (result, &error);
+	g_assert_true (sensor == NULL);
+
+	g_main_loop_quit (loop);
+}
+
+static void
+test_libssc_sensor_no_sample_rate(void)
+{
+	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+
+	/* Discover a sensor in continuous mode with missing required sample rate */
+	ssc_sensor_new ("no-sample-rate", NULL, (GAsyncReadyCallback) sensor_no_sample_rate_ready, loop);
+
+	/* Run main loop to process signals and timers */
+	g_main_loop_run (loop);
+}
+
 int main (int argc, char *argv[])
 {
 	setlocale (LC_ALL, "");
@@ -451,6 +527,8 @@ int main (int argc, char *argv[])
 	g_test_add_func("/libssc/sensor/accelerometer", test_libssc_sensor_accelerometer);
 	g_test_add_func("/libssc/sensor/compass", test_libssc_sensor_compass);
 	g_test_add_func("/libssc/sensor/magnetometer", test_libssc_sensor_magnetometer);
+	g_test_add_func("/libssc/sensor/unsupported", test_libssc_sensor_unsupported);
+	g_test_add_func("/libssc/sensor/unavailable", test_libssc_sensor_unavailable);
 
 	return g_test_run();
 }
