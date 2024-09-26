@@ -441,16 +441,27 @@ test_libssc_sensor_magnetometer(void)
 }
 
 static void
+sensor_unavailable_open_ready (SSCSensor *self, GAsyncResult *result, gpointer user_data)
+{
+	GError *error = NULL;
+	GMainLoop *loop = user_data;
+	gboolean success = FALSE;
+
+	success = ssc_sensor_open_finish (self, result, &error);
+	g_assert_false (success);
+
+	g_main_loop_quit (loop);
+}
+
+static void
 sensor_unavailable_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 {
-	GMainLoop *loop = user_data;
 	GError *error = NULL;
 	SSCSensor *sensor = NULL;
 
 	sensor = ssc_sensor_new_finish (result, &error);
-	g_assert_true (sensor == NULL);
-
-	g_main_loop_quit (loop);
+	g_assert_true (error == NULL);
+	ssc_sensor_open (sensor, NULL, (GAsyncReadyCallback) sensor_unavailable_open_ready, user_data);
 }
 
 static void
@@ -491,16 +502,27 @@ test_libssc_sensor_unsupported(void)
 }
 
 static void
+sensor_no_sample_rate_open_ready (SSCSensor *self, GAsyncResult *result, gpointer user_data)
+{
+	GError *error = NULL;
+	GMainLoop *loop = user_data;
+	gboolean success = FALSE;
+
+	success = ssc_sensor_open_finish (self, result, &error);
+	g_assert_false (success);
+
+	g_main_loop_quit (loop);
+}
+
+static void
 sensor_no_sample_rate_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 {
-	GMainLoop *loop = user_data;
 	GError *error = NULL;
 	SSCSensor *sensor = NULL;
 
 	sensor = ssc_sensor_new_finish (result, &error);
-	g_assert_true (sensor == NULL);
-
-	g_main_loop_quit (loop);
+	g_assert_true (error == NULL);
+	ssc_sensor_open (sensor, NULL, (GAsyncReadyCallback) sensor_no_sample_rate_open_ready, user_data);
 }
 
 static void
@@ -529,6 +551,7 @@ int main (int argc, char *argv[])
 	g_test_add_func("/libssc/sensor/magnetometer", test_libssc_sensor_magnetometer);
 	g_test_add_func("/libssc/sensor/unsupported", test_libssc_sensor_unsupported);
 	g_test_add_func("/libssc/sensor/unavailable", test_libssc_sensor_unavailable);
+	g_test_add_func("/libssc/sensor/no-sample-rate", test_libssc_sensor_no_sample_rate);
 
 	return g_test_run();
 }
