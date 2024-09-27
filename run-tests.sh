@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Meson setup
+meson setup --reconfigure _build
+
 # Execute no service tests
 echo "==> Executing libssc no service"
 meson test -C _build --verbose --print-errorlogs tests-no-service
