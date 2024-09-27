@@ -18,8 +18,7 @@
 
 #include <glib.h>
 #include <locale.h>
-#include "libssc-client.h"
-#include "libssc-version.h"
+#include "libssc-client-private.h"
 #include "libssc-sensor.h"
 #include "libssc-sensor-proximity.h"
 

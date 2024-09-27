@@ -18,8 +18,7 @@
 
 #include <glib.h>
 #include <locale.h>
-#include "libssc-client.h"
-#include "libssc-version.h"
+#include "libssc-client-private.h"
 #include "libssc-sensor.h"
 #include "libssc-sensor-proximity.h"
 #include "libssc-sensor-light.h"
@@ -57,14 +56,14 @@ proximity_close_cb (SensorData *data)
 	 * the same as the previous value are skipped by libssc
 	 */
 	g_assert_cmpint (measurements->len, >=, 8);
-	g_assert_true (g_array_index (measurements, gboolean, 0) == TRUE);
-	g_assert_true (g_array_index (measurements, gboolean, 1) == FALSE);
-	g_assert_true (g_array_index (measurements, gboolean, 2) == TRUE);
-	g_assert_true (g_array_index (measurements, gboolean, 3) == FALSE);
-	g_assert_true (g_array_index (measurements, gboolean, 4) == TRUE);
-	g_assert_true (g_array_index (measurements, gboolean, 5) == FALSE);
-	g_assert_true (g_array_index (measurements, gboolean, 6) == TRUE);
-	g_assert_true (g_array_index (measurements, gboolean, 7) == FALSE);
+	g_assert_true (g_array_index (measurements, gboolean, 0) == FALSE);
+	g_assert_true (g_array_index (measurements, gboolean, 1) == TRUE);
+	g_assert_true (g_array_index (measurements, gboolean, 2) == FALSE);
+	g_assert_true (g_array_index (measurements, gboolean, 3) == TRUE);
+	g_assert_true (g_array_index (measurements, gboolean, 4) == FALSE);
+	g_assert_true (g_array_index (measurements, gboolean, 5) == TRUE);
+	g_assert_true (g_array_index (measurements, gboolean, 6) == FALSE);
+	g_assert_true (g_array_index (measurements, gboolean, 7) == TRUE);
 
 	g_main_loop_quit (loop);
 
