@@ -115,6 +115,11 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT) {
 		msg = ssc_light_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
+		if (msg == NULL) {
+			g_warning ("Failed to unpack light measurement message");
+			return;
+		}
+
 		/* Only report intensity in Lux, raw sensor values are ignored */
 		if (msg->n_intensity >= 1) {
 			intensity = msg->intensity[0];

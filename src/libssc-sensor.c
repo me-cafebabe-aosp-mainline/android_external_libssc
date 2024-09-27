@@ -272,6 +272,12 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	if (uid_high == SSC_SENSOR_UID_SUID_HIGH && uid_low == SSC_SENSOR_UID_SUID_LOW && msg_id == SSC_MSG_RESPONSE_SUID) {
 		suid_msg = ssc_suid_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
+		if (suid_msg == NULL)
+		{
+			g_warning ("Failed to unpack SUID Discover message");
+			return;
+		}
+
 		/* Ignore if data type does not match due to concurrency */
 		if (g_strcmp0 (suid_msg->data_type, priv->data_type) != 0) {
 			ssc_suid_response__free_unpacked (suid_msg, NULL);
@@ -306,47 +312,51 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	} else if (uid_high == priv->uid_high && uid_low == priv->uid_low && msg_id == SSC_MSG_RESPONSE_GET_ATTRIBUTES) {
 		attr_msg = ssc_attr_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
-		if (attr_msg != NULL) {
-			for (gsize i = 0; i < attr_msg->n_attr; i++) {
-				switch (attr_msg->attr[i]->id) {
-					case SSC_ATTRIBUTE_NAME:
-						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
-							priv->name = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
-						break;
-					case SSC_ATTRIBUTE_VENDOR:
-						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
-							priv->vendor = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
-						break;
-					case SSC_ATTRIBUTE_AVAILABLE:
-						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_b)
-							priv->available = attr_msg->attr[i]->value_array->v[0]->b;
-						break;
-					case SSC_ATTRIBUTE_SAMPLE_RATE:
-						/* Only a single sample rate is supported for now. */
-						for (gsize j = 0; j < attr_msg->attr[i]->value_array->n_v; j++) {
-							if (attr_msg->attr[i]->value_array->v[j]->has_f
-							 && attr_msg->attr[i]->value_array->v[j]->f > 0) {
-								priv->sample_rate = attr_msg->attr[i]->value_array->v[j]->f;
-								break;
-							}
-						}
-						break;
-					case SSC_ATTRIBUTE_STREAM_TYPE:
-						if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i)
-							priv->stream_type = attr_msg->attr[i]->value_array->v[0]->i;
-						break;
-				}
-			}
-
-			attributes_populated = TRUE;
-			g_debug ("Attributes populated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
-			g_debug ("  name: %s", priv->name);
-			g_debug ("  vendor: %s", priv->vendor);
-			g_debug ("  data-type: %s", priv->data_type);
-			g_debug ("  stream-type: %s", priv->stream_type == SSC_STREAM_TYPE_CONTINUOUS ? "continuous" : "on-change");
-			g_debug ("  sample-rate: %f Hz", priv->sample_rate);
-			g_debug ("  available: %s", priv->available ? "yes" : "no");
+		if (attr_msg == NULL) {
+			g_warning ("Failed to unpack SUID Attributes message");
+			return;
 		}
+
+		for (gsize i = 0; i < attr_msg->n_attr; i++) {
+		       switch (attr_msg->attr[i]->id) {
+		       	case SSC_ATTRIBUTE_NAME:
+		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+		       			priv->name = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
+		       		break;
+		       	case SSC_ATTRIBUTE_VENDOR:
+		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+		       			priv->vendor = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
+		       		break;
+		       	case SSC_ATTRIBUTE_AVAILABLE:
+		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_b)
+		       			priv->available = attr_msg->attr[i]->value_array->v[0]->b;
+		       		break;
+		       	case SSC_ATTRIBUTE_SAMPLE_RATE:
+		       		/* Only a single sample rate is supported for now. */
+		       		for (gsize j = 0; j < attr_msg->attr[i]->value_array->n_v; j++) {
+		       			if (attr_msg->attr[i]->value_array->v[j]->has_f
+		       			 && attr_msg->attr[i]->value_array->v[j]->f > 0) {
+		       				priv->sample_rate = attr_msg->attr[i]->value_array->v[j]->f;
+		       				break;
+		       			}
+		       		}
+		       		break;
+		       	case SSC_ATTRIBUTE_STREAM_TYPE:
+		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i)
+		       			priv->stream_type = attr_msg->attr[i]->value_array->v[0]->i;
+		       		break;
+		       }
+		}
+		
+
+		attributes_populated = TRUE;
+		g_debug ("Attributes populated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
+		g_debug ("  name: %s", priv->name);
+		g_debug ("  vendor: %s", priv->vendor);
+		g_debug ("  data-type: %s", priv->data_type);
+		g_debug ("  stream-type: %s", priv->stream_type == SSC_STREAM_TYPE_CONTINUOUS ? "continuous" : "on-change");
+		g_debug ("  sample-rate: %f Hz", priv->sample_rate);
+		g_debug ("  available: %s", priv->available ? "yes" : "no");
 
 		/* Sensor initialized, complete task and stop listening */
 		if (ctx->task) {
@@ -366,6 +376,11 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	 */
 	} else if (uid_high == priv->uid_high && uid_low == priv->uid_low && msg_id == SSC_MSG_RESPONSE_ENABLE_REPORT) {
 		config_msg = ssc_config_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+
+		if (config_msg == NULL) {
+			g_warning ("Failed to unpack SUID Configuration message");
+			return;
+		}
 		
 		g_debug ("Configuration updated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
 		g_debug ("  mode: %s", config_msg->mode ? config_msg->mode : "UNKNOWN");
@@ -515,7 +530,7 @@ client_ready (SSCClient *client, GAsyncResult *result, gpointer user_data)
 	/* Client allocation */
 	priv->client = ssc_client_new_finish (result, &error);
 	if (!priv->client) {
-		g_task_return_boolean (task, FALSE);
+		g_task_return_error (task, error);
 		g_object_unref (task);
 		return;
 	}

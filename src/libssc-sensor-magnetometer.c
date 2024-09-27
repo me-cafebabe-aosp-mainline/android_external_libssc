@@ -119,6 +119,11 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT) {
 		msg = ssc_magnetometer_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
+		if (msg == NULL) {
+			g_warning ("Failed to unpack magnetometer measurement message");
+			return;
+		}
+
 		if (msg->n_magnetic_field >= 3) {
 			x = msg->magnetic_field[0];
 			y = msg->magnetic_field[1];

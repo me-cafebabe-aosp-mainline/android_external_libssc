@@ -87,6 +87,11 @@ handle_report (SSCClient *self, GArray *protobuf)
 	SscClientResponse *msg;
 
 	msg = ssc_client_response__unpack (NULL, protobuf->len, (const uint8_t *) protobuf->data);
+	if (msg == NULL)
+	{
+		g_warning ("Failed to unpack message");
+		return;
+	}
 
 	for (gsize i = 0; i < msg->n_response; i++) {
 		SscClientResponseBody *body = msg->response[i];

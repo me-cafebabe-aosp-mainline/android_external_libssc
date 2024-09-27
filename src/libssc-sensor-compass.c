@@ -151,6 +151,11 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT) {
 		msg = ssc_rotationvector_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 
+		if (msg == NULL) {
+			g_warning ("Failed to unpack rotationvector measurement message");
+			return;
+		}
+
 		if (msg->n_rotation >= 4) {
 			x = msg->rotation[0];
 			y = msg->rotation[1];

@@ -121,7 +121,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		/* Most devices use REPORT_MEASUREMENT_PROXIMITY */
 		if (msg_id == SSC_MSG_REPORT_MEASUREMENT_PROXIMITY) {
 			SscProximityResponse *msg = ssc_proximity_response__unpack (NULL, buf->len, (const uint8_t *) buf->data);
-			priv = ssc_sensor_proximity_get_instance_private (sensor);
+			if (msg == NULL) {
+				g_warning ("Failed to unpack proximity measurement message");
+				return;
+			}
 
 			switch (msg->near) {
 				case SSC_SENSOR_PROXIMITY_NEAR:
@@ -137,9 +140,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			ssc_proximity_response__free_unpacked (msg, NULL);
 		/* xiaomi-davinci uses REPORT_MEASUREMENT and its own proximity response */
 		} else if (msg_id == SSC_MSG_REPORT_MEASUREMENT) {
-			SscProximityResponseDavinci *msg = ssc_proximity_response_davinci__unpack (NULL, buf->len, (const uint8_t *) buf->data);
 			ProximityDataDavinci data;
-			priv = ssc_sensor_proximity_get_instance_private (sensor);
+			SscProximityResponseDavinci *msg = ssc_proximity_response_davinci__unpack (NULL, buf->len, (const uint8_t *) buf->data);
+
+			if (msg == NULL) {
+				g_warning ("Failed to unpack Xiaomi Davinci proximity measurement message");
+				return;
+			}
 
 			if (msg->data->len != sizeof(ProximityDataDavinci)) {
 				/* Not observed and unlikely to ever happen due to reserved fields in the data struct */
@@ -166,6 +173,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		/* Only emit signal when measurement actually changed or if the sensor was recently opened */
+		priv = ssc_sensor_proximity_get_instance_private (sensor);
 		if (priv->near != near || !priv->reported_once) {
 			priv->near = near;
 			priv->reported_once = TRUE;
