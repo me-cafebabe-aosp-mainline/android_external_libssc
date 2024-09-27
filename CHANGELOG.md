@@ -7,11 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Unittests for CI/CD.
+- Mocking SSC DSP with ssc-server to emulate DSP on non-Qualcomm environments.
+- Release instructions in RELEASE.md.
+
+### Changed
+- Reduced API surface. All private interfaces are now excluded from public usage.
+- API is now solely exposed through `libssc.h`.
+- Use proper GErrors instead of g\_warning for errors.
+
+### Fixed
+- Passing GTask in libssc-sensor was missing.
+- Light sensor intensity is always positive, reject negative measurements.
+- Proximity sensor will always output a measurement now when opened.
+- Document availability sensor attribute and specify QMI header length.
+
 ## [0.1.6] - 2024-06-08
 
 ### Fixed
 - Ownership of GError is now properly performed when using GTasks.
-- Handle access denied to address family AF_QIPCRTR in lockdown mode.
+- Handle access denied to address family AF\_QIPCRTR in lockdown mode.
 - Fix verbose argument for enabling debug mode in ssccli.
 - Race condition if the sensor is rapidly probed by opening and closing it.
 
