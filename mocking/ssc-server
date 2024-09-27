@@ -17,6 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+import os
 import gi
 import sys
 import time
@@ -65,7 +66,7 @@ class SSCMockingServer():
         self.workers = {}
 
         print(f'👋 SSC Mocking Server v{VERSION}')
-        self._qrtr = CDLL('./qrtr/_build/lib/libqrtr.so')
+        self._qrtr = CDLL(os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'))
 
         print('ℹ️  Creating QRTR socket')
         self.sock = self._qrtr.qrtr_open(port)
