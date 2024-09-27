@@ -411,24 +411,6 @@ ssc_client_init (SSCClient *self)
 }
 
 static void
-release_client_ready (QmiDevice *device, GAsyncResult *result, gpointer user_data)
-{
-	g_autoptr (GError) error = NULL;
-	GObject *object = G_OBJECT (user_data);
-	SSCClientPrivate *priv = NULL;
-
-	priv = ssc_client_get_instance_private (SSC_CLIENT (object));
-
-	if (!qmi_device_release_client_finish (device, result, &error))
-		g_warning ("Could not release SSC QMI client: %s\n", error->message);
-
-	g_clear_object (&priv->qmi_client_ssc);
-	g_clear_object (&priv->device);
-
-	G_OBJECT_CLASS (ssc_client_parent_class)->dispose (object);
-}
-
-static void
 ssc_client_dispose (GObject *object)
 {
 	QmiDeviceReleaseClientFlags flags = QMI_DEVICE_RELEASE_CLIENT_FLAGS_NONE;
