@@ -539,9 +539,17 @@ test_libssc_sensor_no_sample_rate(void)
 
 int main (int argc, char *argv[])
 {
+	GLogLevelFlags mask;
+
 	setlocale (LC_ALL, "");
 
+	/* Initialize test framework */
 	g_test_init (&argc, &argv, NULL);
+
+	/* Allow warnings */
+	mask = (GLogLevelFlags) g_log_set_always_fatal ((GLogLevelFlags) G_LOG_FATAL_MASK);
+	mask = (GLogLevelFlags) (mask & (~G_LOG_LEVEL_WARNING));
+	g_log_set_always_fatal ((GLogLevelFlags) mask);
 
 	/* Tests */
 	g_test_add_func("/libssc/sensor/proximity", test_libssc_sensor_proximity);
@@ -553,5 +561,6 @@ int main (int argc, char *argv[])
 	g_test_add_func("/libssc/sensor/unavailable", test_libssc_sensor_unavailable);
 	g_test_add_func("/libssc/sensor/no-sample-rate", test_libssc_sensor_no_sample_rate);
 
+	/* Execute tests */
 	return g_test_run();
 }
