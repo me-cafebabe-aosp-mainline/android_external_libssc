@@ -27,7 +27,13 @@ version_header = configure_file(
 )
 
 headers += files(
-  'libssc.h'
+  'libssc.h',
+  'libssc-sensor.h',
+  'libssc-sensor-proximity.h',
+  'libssc-sensor-light.h',
+  'libssc-sensor-accelerometer.h',
+  'libssc-sensor-magnetometer.h',
+  'libssc-sensor-compass.h'
 )
 
 install_headers(

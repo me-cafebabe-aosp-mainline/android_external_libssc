@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Proximity sensor will always output a measurement now when opened.
 - Document availability sensor attribute and specify QMI header length.
 - Path to protoc and protoc-c for compiling ProtoBuff messages.
+- Public headers are now correctly installed.
 
 ## [0.1.6] - 2024-06-08
 
