@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unittests for CI/CD.
 - Mocking SSC DSP with ssc-server to emulate DSP on non-Qualcomm environments.
 - Release instructions in RELEASE.md.
+- Set `G_LOG_DOMAIN` during build to 'libssc' for easier debugging.
 
 ### Changed
 - Reduced API surface. All private interfaces are now excluded from public usage.

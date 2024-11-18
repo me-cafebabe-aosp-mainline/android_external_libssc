@@ -65,6 +65,7 @@ c_flags = [
   '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_' + glib_version.underscorify(),
   '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_' + glib_version.underscorify(),
   '-DGLIB_DISABLE_DEPRECATION_WARNINGS',
+  '-DG_LOG_DOMAIN="libssc"',
 ]
 
 glib_dep = dependency('glib-2.0', version: '>= ' + glib_version)
