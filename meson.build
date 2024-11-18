@@ -48,6 +48,7 @@ libssc_includedir = get_option('includedir')
 libssc_glib_include_subdir = libssc_name
 libssc_glib_pkgincludedir = libssc_includedir / libssc_glib_include_subdir
 libssc_mocking_dir = 'mocking'
+libssc_mocking_data_dir = libssc_mocking_dir / 'data'
 
 cc = meson.get_compiler('c')
 cc_flags = cc.get_supported_arguments([
@@ -71,7 +72,8 @@ gio_unix_dep = dependency('gio-unix-2.0')
 libqmi_dep = dependency('qmi-glib', version: '>=' + libqmi_version)
 protobufc_dep = dependency('libprotobuf-c')
 m_dep = cc.find_library('m', required: true)
-protoc_tool = find_program('protoc', 'protoc-c')
+protocc_tool = find_program('protoc-c', 'protoc-c')
+protoc_tool = find_program('protoc', 'protoc')
 
 deps = [
   glib_dep,

@@ -32,6 +32,10 @@ General information about libssc, documentation, and other information can be fo
 - `glib >= 2.56`
 - `protobuf-c`
 
+`libssc` tests requires an additional dependency to compile the ProtoBuf messages for simulating the DSP QMI responses:
+
+- `protobuf`
+
 ```
 cd build
 meson ..

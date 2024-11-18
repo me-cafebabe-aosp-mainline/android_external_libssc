@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Light sensor intensity is always positive, reject negative measurements.
 - Proximity sensor will always output a measurement now when opened.
 - Document availability sensor attribute and specify QMI header length.
+- Path to protoc and protoc-c for compiling ProtoBuff messages.
 
 ## [0.1.6] - 2024-06-08
 
