@@ -234,14 +234,27 @@ ssc_sensor_magnetometer_close_sync (SSCSensorMagnetometer *self, GCancellable *c
 static void
 magnetometer_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
 {
+	SSCSensorMagnetometerPrivate *priv = NULL;
+	SSCClient *client = NULL;
 	GTask *task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
+
+	priv = ssc_sensor_magnetometer_get_instance_private (SSC_SENSOR_MAGNETOMETER (sensor));
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_magnetometer_parent_class)->open_finish (sensor, result, &error)) {
 		g_task_return_boolean (task, FALSE);
 		g_object_unref (task);
 		return;
 	}
+
+	/* Start listening for reports */
+	g_object_get (SSC_SENSOR (sensor),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	priv->report_id = g_signal_connect (client,
+			"report",
+			G_CALLBACK (report_received),
+			sensor);
 
 	g_task_return_boolean (task, TRUE);
 	g_object_unref (task);
@@ -318,8 +331,6 @@ ssc_sensor_magnetometer_init (SSCSensorMagnetometer *self)
 SSCSensorMagnetometer *
 ssc_sensor_magnetometer_new_finish (GAsyncResult *result, GError **error)
 {
-	SSCSensorMagnetometerPrivate *priv = NULL;
-	SSCClient *client = NULL;
 	GObject *sensor;
 	GObject *source;
 
@@ -330,17 +341,6 @@ ssc_sensor_magnetometer_new_finish (GAsyncResult *result, GError **error)
 		g_object_unref (source);
 		return NULL;
 	}
-
-	priv = ssc_sensor_magnetometer_get_instance_private (SSC_SENSOR_MAGNETOMETER (sensor));
-
-	/* Start listening for reports */
-	g_object_get (SSC_SENSOR (sensor),
-		      SSC_SENSOR_CLIENT, &client,
-		      NULL);
-	priv->report_id = g_signal_connect (client,
-			"report",
-			G_CALLBACK (report_received),
-			sensor);
 
 	g_object_unref (source);
 	return SSC_SENSOR_MAGNETOMETER (sensor);
