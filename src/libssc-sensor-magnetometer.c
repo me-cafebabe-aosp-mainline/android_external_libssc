@@ -214,7 +214,6 @@ ssc_sensor_magnetometer_close_sync (SSCSensorMagnetometer *self, GCancellable *c
 	if (priv->thread)
 		g_thread_join (priv->thread);
 
-
 	/* Take over context and close sensor */
 	g_main_context_push_thread_default (priv->context);
 	ctx.loop = g_main_loop_new (priv->context, TRUE);
@@ -290,6 +289,10 @@ ssc_sensor_magnetometer_open_sync (SSCSensorMagnetometer *self, GCancellable *ca
 	g_main_context_pop_thread_default (priv->context);
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
+
+	/* Wait until report receiving thread is running */
+	while (!priv->loop)
+		g_thread_yield ();
 
 	return success;
 }
