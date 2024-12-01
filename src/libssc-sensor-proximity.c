@@ -337,6 +337,10 @@ ssc_sensor_proximity_open_sync (SSCSensorProximity *self, GCancellable *cancella
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
 
+	/* Wait until report receiving thread is running */
+	while (!priv->loop)
+		g_thread_yield ();
+
 	return success;
 }
 
