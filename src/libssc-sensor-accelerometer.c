@@ -289,6 +289,10 @@ ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
 
+	/* Wait until report receiving thread is running */
+	while (!priv->loop)
+		g_thread_yield ();
+
 	return success;
 }
 
