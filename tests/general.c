@@ -426,7 +426,6 @@ test_libssc_sensor_magnetometer(void)
 	/* Connect measurement signal */
 	g_signal_connect (sensor, "measurement", G_CALLBACK (magnetometer_measurement), measurements);
 
-	/* Wait until all mocking measurements are received */
 	data.sensor = SSC_SENSOR (sensor);
 	data.measurements = measurements;
 	data.loop = loop;
@@ -464,7 +463,7 @@ sensor_unavailable_ready (SSCClient *self, GAsyncResult *result, gpointer user_d
 }
 
 static void
-test_libssc_sensor_unavailable(void)
+test_libssc_sensor_unavailable (void)
 {
 	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
@@ -489,7 +488,7 @@ sensor_unsupported_ready (SSCClient *self, GAsyncResult *result, gpointer user_d
 }
 
 static void
-test_libssc_sensor_unsupported(void)
+test_libssc_sensor_unsupported (void)
 {
 	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
@@ -525,7 +524,7 @@ sensor_no_sample_rate_ready (SSCClient *self, GAsyncResult *result, gpointer use
 }
 
 static void
-test_libssc_sensor_no_sample_rate(void)
+test_libssc_sensor_no_sample_rate (void)
 {
 	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
 
@@ -534,6 +533,96 @@ test_libssc_sensor_no_sample_rate(void)
 
 	/* Run main loop to process signals and timers */
 	g_main_loop_run (loop);
+}
+
+static void
+test_libssc_sensor_proximity_probe_sync (void)
+{
+	g_autoptr (GError) error = NULL;
+
+	/* Test information */
+	g_test_summary ("Test `probing proximity sensor with open_sync and close_sync`");
+
+	/* Create sensor */
+	SSCSensorProximity *sensor = ssc_sensor_proximity_new_sync (NULL, &error);
+
+	/* Open sensor */
+	g_assert_true (ssc_sensor_proximity_open_sync (sensor, NULL, &error));
+
+	/* Close sensor */
+	g_assert_true (ssc_sensor_proximity_close_sync (sensor, NULL, &error));
+}
+
+static void
+test_libssc_sensor_accelerometer_probe_sync (void)
+{
+	g_autoptr (GError) error = NULL;
+
+	/* Test information */
+	g_test_summary ("Test `probing accelerometer sensor with open_sync and close_sync`");
+
+	/* Create sensor */
+	SSCSensorAccelerometer *sensor = ssc_sensor_accelerometer_new_sync (NULL, &error);
+
+	/* Open sensor */
+	g_assert_true (ssc_sensor_accelerometer_open_sync (sensor, NULL, &error));
+
+	/* Close sensor */
+	g_assert_true (ssc_sensor_accelerometer_close_sync (sensor, NULL, &error));
+}
+
+static void
+test_libssc_sensor_light_probe_sync (void)
+{
+	g_autoptr (GError) error = NULL;
+
+	/* Test information */
+	g_test_summary ("Test `probing light sensor with open_sync and close_sync`");
+
+	/* Create sensor */
+	SSCSensorLight *sensor = ssc_sensor_light_new_sync (NULL, &error);
+
+	/* Open sensor */
+	g_assert_true (ssc_sensor_light_open_sync (sensor, NULL, &error));
+
+	/* Close sensor */
+	g_assert_true (ssc_sensor_light_close_sync (sensor, NULL, &error));
+}
+
+static void
+test_libssc_sensor_magnetometer_probe_sync (void)
+{
+	g_autoptr (GError) error = NULL;
+
+	/* Test information */
+	g_test_summary ("Test `probing magnetometer sensor with open_sync and close_sync`");
+
+	/* Create sensor */
+	SSCSensorMagnetometer *sensor = ssc_sensor_magnetometer_new_sync (NULL, &error);
+
+	/* Open sensor */
+	g_assert_true (ssc_sensor_magnetometer_open_sync (sensor, NULL, &error));
+
+	/* Close sensor */
+	g_assert_true (ssc_sensor_magnetometer_close_sync (sensor, NULL, &error));
+}
+
+static void
+test_libssc_sensor_compass_probe_sync (void)
+{
+	g_autoptr (GError) error = NULL;
+
+	/* Test information */
+	g_test_summary ("Test `probing compass sensor with open_sync and close_sync`");
+
+	/* Create sensor */
+	SSCSensorCompass *sensor = ssc_sensor_compass_new_sync (NULL, &error);
+
+	/* Open sensor */
+	g_assert_true (ssc_sensor_compass_open_sync (sensor, NULL, &error));
+
+	/* Close sensor */
+	g_assert_true (ssc_sensor_compass_close_sync (sensor, NULL, &error));
 }
 
 int main (int argc, char *argv[])
@@ -551,11 +640,16 @@ int main (int argc, char *argv[])
 	g_log_set_always_fatal ((GLogLevelFlags) mask);
 
 	/* Tests */
-	g_test_add_func("/libssc/sensor/proximity", test_libssc_sensor_proximity);
-	g_test_add_func("/libssc/sensor/light", test_libssc_sensor_light);
-	g_test_add_func("/libssc/sensor/accelerometer", test_libssc_sensor_accelerometer);
-	g_test_add_func("/libssc/sensor/compass", test_libssc_sensor_compass);
-	g_test_add_func("/libssc/sensor/magnetometer", test_libssc_sensor_magnetometer);
+	g_test_add_func("/libssc/sensor/proximity/measurements", test_libssc_sensor_proximity);
+	g_test_add_func("/libssc/sensor/proximity/probe-sync", test_libssc_sensor_proximity_probe_sync);
+	g_test_add_func("/libssc/sensor/light/measurements", test_libssc_sensor_light);
+	g_test_add_func("/libssc/sensor/light/probe-sync", test_libssc_sensor_light_probe_sync);
+	g_test_add_func("/libssc/sensor/accelerometer/measurements", test_libssc_sensor_accelerometer);
+	g_test_add_func("/libssc/sensor/accelerometer/probe-sync", test_libssc_sensor_accelerometer_probe_sync);
+	g_test_add_func("/libssc/sensor/compass/measurements", test_libssc_sensor_compass);
+	g_test_add_func("/libssc/sensor/compass/probe-sync", test_libssc_sensor_compass_probe_sync);
+	g_test_add_func("/libssc/sensor/magnetometer/measurements", test_libssc_sensor_magnetometer);
+	g_test_add_func("/libssc/sensor/magnetometer/probe-sync", test_libssc_sensor_magnetometer_probe_sync);
 	g_test_add_func("/libssc/sensor/unsupported", test_libssc_sensor_unsupported);
 	g_test_add_func("/libssc/sensor/unavailable", test_libssc_sensor_unavailable);
 	g_test_add_func("/libssc/sensor/no-sample-rate", test_libssc_sensor_no_sample_rate);
