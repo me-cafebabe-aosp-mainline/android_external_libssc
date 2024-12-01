@@ -283,6 +283,10 @@ ssc_sensor_light_open_sync (SSCSensorLight *self, GCancellable *cancellable, GEr
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
 
+	/* Wait until report receiving thread is running */
+	while (!priv->loop)
+		g_thread_yield ();
+
 	return success;
 }
 
