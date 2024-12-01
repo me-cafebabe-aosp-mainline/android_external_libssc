@@ -323,6 +323,10 @@ ssc_sensor_compass_open_sync (SSCSensorCompass *self, GCancellable *cancellable,
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
 
+	/* Wait until report receiving thread is running */
+	while (!priv->loop)
+		g_thread_yield ();
+
 	return success;
 }
 
