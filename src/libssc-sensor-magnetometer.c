@@ -27,6 +27,7 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
+gboolean magnetometer_thread_running;
 
 typedef struct _SSCSensorMagnetometerPrivate {
 	guint report_id;
@@ -139,6 +140,9 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		ssc_magnetometer_response__free_unpacked (msg, NULL);
+
+		/* Declare that the report receiving thread is running */
+		magnetometer_thread_running = TRUE;
 	}
 }
 
@@ -297,6 +301,7 @@ ssc_sensor_magnetometer_open_sync (SSCSensorMagnetometer *self, GCancellable *ca
 	success = ssc_sensor_magnetometer_open_finish (self, ctx.result, error);
 
 	/* Start report thread to watch for incoming measurements over QMI indications */
+	magnetometer_thread_running = FALSE;
 	priv->thread = g_thread_new ("report-receiver-magnetometer", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
@@ -304,7 +309,7 @@ ssc_sensor_magnetometer_open_sync (SSCSensorMagnetometer *self, GCancellable *ca
 	g_object_unref (ctx.result);
 
 	/* Wait until report receiving thread is running */
-	while (!priv->loop)
+	while (!magnetometer_thread_running)
 		g_thread_yield ();
 
 	return success;
