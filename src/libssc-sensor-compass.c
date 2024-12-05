@@ -27,6 +27,7 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
+gboolean compass_thread_running;
 
 typedef struct _SSCSensorCompassPrivate {
 	guint report_id;
@@ -171,6 +172,9 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		ssc_rotationvector_response__free_unpacked (msg, NULL);
+
+		/* Declare that the report receiving thread is running */
+		compass_thread_running = TRUE;
 	}
 }
 
@@ -229,8 +233,6 @@ ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable
 	SyncContext ctx;
 
 	priv = ssc_sensor_compass_get_instance_private (self);
-	g_warn_if_fail (priv->loop);
-	g_warn_if_fail (priv->thread);
 
 	/*
 	 * Stop report context thread before re-acquiring our context.
@@ -330,6 +332,7 @@ ssc_sensor_compass_open_sync (SSCSensorCompass *self, GCancellable *cancellable,
 	success = ssc_sensor_compass_open_finish (self, ctx.result, error);
 
 	/* Start report thread to watch for incoming measurements over QMI indications */
+	compass_thread_running = FALSE;
 	priv->thread = g_thread_new ("report-receiver-compass", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
@@ -337,7 +340,7 @@ ssc_sensor_compass_open_sync (SSCSensorCompass *self, GCancellable *cancellable,
 	g_object_unref (ctx.result);
 
 	/* Wait until report receiving thread is running */
-	while (!priv->loop)
+	while (!compass_thread_running)
 		g_thread_yield ();
 
 	return success;
