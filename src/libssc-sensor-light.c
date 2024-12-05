@@ -27,6 +27,7 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
+gboolean light_thread_running;
 
 typedef struct _SSCSensorLightPrivate {
 	guint report_id;
@@ -134,6 +135,9 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		ssc_light_response__free_unpacked (msg, NULL);
+
+		/* Declare that the report receiving thread is running */
+		light_thread_running = TRUE;
 	}
 }
 
@@ -291,6 +295,7 @@ ssc_sensor_light_open_sync (SSCSensorLight *self, GCancellable *cancellable, GEr
 	success = ssc_sensor_light_open_finish (self, ctx.result, error);
 
 	/* Start report thread to watch for incoming measurements over QMI indications */
+	light_thread_running = FALSE;
 	priv->thread = g_thread_new ("report-receiver-light", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
@@ -298,7 +303,7 @@ ssc_sensor_light_open_sync (SSCSensorLight *self, GCancellable *cancellable, GEr
 	g_object_unref (ctx.result);
 
 	/* Wait until report receiving thread is running */
-	while (!priv->loop)
+	while (!light_thread_running)
 		g_thread_yield ();
 
 	return success;
