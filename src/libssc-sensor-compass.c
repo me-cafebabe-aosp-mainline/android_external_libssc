@@ -219,7 +219,9 @@ ssc_sensor_compass_close (SSCSensorCompass *self, GCancellable *cancellable, GAs
 	g_object_get (SSC_SENSOR (self),
 		      SSC_SENSOR_CLIENT, &client,
 		      NULL);
-	g_signal_handler_disconnect (client, priv->report_id);
+
+	if (priv->report_id)
+		g_signal_handler_disconnect (client, priv->report_id);
 
 	/* Close sensor */
 	SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)compass_close_ready, task);
