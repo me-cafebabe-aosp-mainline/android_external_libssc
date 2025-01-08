@@ -42,6 +42,15 @@ meson ..
 ninja
 ```
 
+## Linking against libssc
+
+Use `pkg-config` in your favorite build system to link against `libssc`.
+The library is called `libssc`, in Meson it looks like this:
+
+```
+libssc_dep = dependency('libssc')
+```
+
 ## Lockdown
 
 Systemd features a lockdown feature to reduce access to resources for services.
