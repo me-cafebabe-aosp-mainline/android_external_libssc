@@ -502,29 +502,12 @@ async_initable_iface_init (GAsyncInitableIface *iface)
 	iface->init_finish = initable_init_finish;
 }
 
-static GObject*
-ssc_client_constructor (GType type, guint n_construct_params, GObjectConstructParam *construct_params)
-{
-	static GObject *self = NULL;
-
-	/* Enforce singleton */
-	if (self == NULL)
-	{
-		self = G_OBJECT_CLASS (ssc_client_parent_class)->constructor (type, n_construct_params, construct_params);
-		g_object_add_weak_pointer (self, (gpointer) &self);
-		return self;
-	}
-
-	return g_object_ref (self);
-}
-
 static void
 ssc_client_class_init (SSCClientClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
 	/* Virtual methods */
-	object_class->constructor = ssc_client_constructor;
 	object_class->dispose = ssc_client_dispose;
 
 	/* Signals */
