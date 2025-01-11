@@ -57,6 +57,24 @@ Systemd features a lockdown feature to reduce access to resources for services.
 If `libssc` is used in a service such as `iio-sensor-proxy`, make sure access to the address family `AF_QIPCRTR`
 otherwise access to the QRTR bus is prohibited.
 
+## Tests
+
+Libssc has tests with and without the SSC mocking server to verify also the behavior
+of libssc when the QMI service is not present. It is advisable to run them separate:
+
+**Without mocking server**
+
+```
+meson test tests-no-service
+```
+
+**With mocking server**
+
+```
+./mocking/ssc-server
+meson test tests-general
+```
+
 ## License
 
 Available under the [GPLv3 license](./LICENSE).<br>
