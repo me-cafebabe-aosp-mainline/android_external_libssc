@@ -19,7 +19,7 @@
 
 project(
   'libssc', 'c',
-  version: '0.1.7',
+  version: '0.2.0',
   license: 'GPL3',
   default_options: [
     'buildtype=debugoptimized',

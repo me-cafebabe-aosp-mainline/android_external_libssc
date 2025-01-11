@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.2.0] - 2025-01-11
+
 ### Added
 - Unittests for CI/CD.
 - Mocking SSC DSP with ssc-server to emulate DSP on non-Qualcomm environments.
@@ -94,3 +96,4 @@ Initial release.
 [0.1.4]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.3...0.1.4
 [0.1.5]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.4...0.1.5
 [0.1.6]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.5...0.1.6
+[0.2.0]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.6...0.2.0
