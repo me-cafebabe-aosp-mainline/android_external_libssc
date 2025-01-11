@@ -78,4 +78,4 @@ meson test tests-general
 ## License
 
 Available under the [GPLv3 license](./LICENSE).<br>
-Copyright (c) by libssc Authors (2022-2024)
+Copyright (c) by libssc Authors (2022-2025)
