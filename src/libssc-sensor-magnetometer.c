@@ -240,27 +240,14 @@ ssc_sensor_magnetometer_close_sync (SSCSensorMagnetometer *self, GCancellable *c
 static void
 magnetometer_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
 {
-	SSCSensorMagnetometerPrivate *priv = NULL;
-	SSCClient *client = NULL;
 	GTask *task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
-
-	priv = ssc_sensor_magnetometer_get_instance_private (SSC_SENSOR_MAGNETOMETER (sensor));
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_magnetometer_parent_class)->open_finish (sensor, result, &error)) {
 		g_task_return_boolean (task, FALSE);
 		g_object_unref (task);
 		return;
 	}
-
-	/* Start listening for reports */
-	g_object_get (SSC_SENSOR (sensor),
-		      SSC_SENSOR_CLIENT, &client,
-		      NULL);
-	priv->report_id = g_signal_connect (client,
-			"report",
-			G_CALLBACK (report_received),
-			sensor);
 
 	g_task_return_boolean (task, TRUE);
 	g_object_unref (task);
@@ -275,13 +262,27 @@ ssc_sensor_magnetometer_open_finish (SSCSensorMagnetometer *self, GAsyncResult *
 void
 ssc_sensor_magnetometer_open (SSCSensorMagnetometer *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
+	SSCSensorMagnetometerPrivate *priv = NULL;
+	SSCClient *client = NULL;
 	GTask *task = NULL;
 
 	g_assert (SSC_SENSOR_CLASS (ssc_sensor_magnetometer_parent_class)->open &&
 		  SSC_SENSOR_CLASS (ssc_sensor_magnetometer_parent_class)->open_finish);
 
+	priv = ssc_sensor_magnetometer_get_instance_private (SSC_SENSOR_MAGNETOMETER (self));
+
 	task = g_task_new (self, cancellable, callback, user_data);
 
+	/* Start listening for reports before opening sensor so we don't miss the first measurement */
+	g_object_get (SSC_SENSOR (self),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	priv->report_id = g_signal_connect (client,
+			"report",
+			G_CALLBACK (report_received),
+			self);
+
+	/* Open sensor */
 	SSC_SENSOR_CLASS (ssc_sensor_magnetometer_parent_class)->open (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)magnetometer_open_ready, task);
 }
 

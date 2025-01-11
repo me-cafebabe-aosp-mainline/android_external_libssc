@@ -271,27 +271,14 @@ ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable
 static void
 compass_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
 {
-	SSCSensorCompassPrivate *priv = NULL;
-	SSCClient *client = NULL;
 	GTask *task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
-
-	priv = ssc_sensor_compass_get_instance_private (SSC_SENSOR_COMPASS (sensor));
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open_finish (sensor, result, &error)) {
 		g_task_return_boolean (task, FALSE);
 		g_object_unref (task);
 		return;
 	}
-
-	/* Start listening for reports */
-	g_object_get (SSC_SENSOR (sensor),
-		      SSC_SENSOR_CLIENT, &client,
-		      NULL);
-	priv->report_id = g_signal_connect (client,
-			"report",
-			G_CALLBACK (report_received),
-			sensor);
 
 	g_task_return_boolean (task, TRUE);
 	g_object_unref (task);
@@ -306,13 +293,27 @@ ssc_sensor_compass_open_finish (SSCSensorCompass *self, GAsyncResult *result, GE
 void
 ssc_sensor_compass_open (SSCSensorCompass *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
+	SSCSensorCompassPrivate *priv = NULL;
+	SSCClient *client = NULL;
 	GTask *task = NULL;
 
 	g_assert (SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open &&
 		  SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open_finish);
 
+	priv = ssc_sensor_compass_get_instance_private (SSC_SENSOR_COMPASS (self));
+
 	task = g_task_new (self, cancellable, callback, user_data);
 
+	/* Start listening for reports before opening sensor so we don't miss the first measurement */
+	g_object_get (SSC_SENSOR (self),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	priv->report_id = g_signal_connect (client,
+			"report",
+			G_CALLBACK (report_received),
+			self);
+
+	/* Open sensor */
 	SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)compass_open_ready, task);
 }
 

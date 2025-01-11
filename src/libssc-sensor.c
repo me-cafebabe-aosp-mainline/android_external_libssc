@@ -291,11 +291,11 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		/* Intercept requests for service discovery first */
-		g_debug("%s data type", suid_msg->data_type);
-		if (g_strcmp0 (suid_msg->data_type, "registry") == 0) {
+		if (suid_msg != NULL && suid_msg->n_uid > 0 && g_strcmp0 (suid_msg->data_type, "registry") == 0) {
 			/* 'registry' sensor found, service available */
 			priv->service_available = TRUE;
 			ssc_suid_response__free_unpacked (suid_msg, NULL);
+			g_debug ("'registry' sensor available, discovering sensor now");
 
 			discover(ctx->sensor, ctx->task);
 			return;

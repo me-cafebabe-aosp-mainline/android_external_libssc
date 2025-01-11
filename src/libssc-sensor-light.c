@@ -233,28 +233,15 @@ ssc_sensor_light_close_sync (SSCSensorLight *self, GCancellable *cancellable, GE
 static void
 light_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
 {
-	SSCSensorLightPrivate *priv = NULL;
-	SSCClient *client = NULL;
 	GTask *task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
 
-	priv = ssc_sensor_light_get_instance_private (SSC_SENSOR_LIGHT (sensor));
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_light_parent_class)->open_finish (sensor, result, &error)) {
 		g_task_return_boolean (task, FALSE);
 		g_object_unref (task);
 		return;
 	}
-
-	/* Start listening for reports */
-	g_object_get (SSC_SENSOR (sensor),
-		      SSC_SENSOR_CLIENT, &client,
-		      NULL);
-	priv->report_id = g_signal_connect (client,
-			"report",
-			G_CALLBACK (report_received),
-			sensor);
-
 
 	g_task_return_boolean (task, TRUE);
 	g_object_unref (task);
@@ -269,13 +256,27 @@ ssc_sensor_light_open_finish (SSCSensorLight *self, GAsyncResult *result, GError
 void
 ssc_sensor_light_open (SSCSensorLight *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
+	SSCSensorLightPrivate *priv = NULL;
+	SSCClient *client = NULL;
 	GTask *task = NULL;
 
 	g_assert (SSC_SENSOR_CLASS (ssc_sensor_light_parent_class)->open &&
 		  SSC_SENSOR_CLASS (ssc_sensor_light_parent_class)->open_finish);
 
+	priv = ssc_sensor_light_get_instance_private (SSC_SENSOR_LIGHT (self));
+
 	task = g_task_new (self, cancellable, callback, user_data);
 
+	/* Start listening for reports */
+	g_object_get (SSC_SENSOR (self),
+		      SSC_SENSOR_CLIENT, &client,
+		      NULL);
+	priv->report_id = g_signal_connect (client,
+					    "report",
+					    G_CALLBACK (report_received),
+					    self);
+
+	/* Open sensor */
 	SSC_SENSOR_CLASS (ssc_sensor_light_parent_class)->open (SSC_SENSOR (self), cancellable, (GAsyncReadyCallback)light_open_ready, task);
 }
 
