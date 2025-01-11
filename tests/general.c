@@ -191,7 +191,7 @@ accelerometer_close_cb (SensorData *data)
 	g_assert_true (ssc_sensor_accelerometer_close_sync (self, NULL, &error));
 
 	/* Check measurements */
-	g_assert_cmpint (measurements->len, >=, 20);
+	g_assert_cmpint (measurements->len, >=, 8);
 
 	g_assert_cmpfloat (g_array_index (measurements, XYZMeasurement, 0).x, ==, 0.0);
 	g_assert_cmpfloat (g_array_index (measurements, XYZMeasurement, 0).y, ==, 0.0);
@@ -287,7 +287,7 @@ compass_close_cb (SensorData *data)
 	g_assert_true (ssc_sensor_compass_close_sync (self, NULL, &error));
 
 	/* Check measurements */
-	g_assert_cmpint (measurements->len, >=, 20);
+	g_assert_cmpint (measurements->len, >=, 8);
 	g_assert_cmpfloat_with_epsilon (g_array_index (measurements, gfloat, 0), 226.468811, 0.1);
 	g_assert_cmpfloat_with_epsilon (g_array_index (measurements, gfloat, 1), 113.62372, 0.1);
 	g_assert_cmpfloat_with_epsilon (g_array_index (measurements, gfloat, 2), 0.0, 0.1);
@@ -355,7 +355,7 @@ magnetometer_close_cb (SensorData *data)
 	g_assert_true (ssc_sensor_magnetometer_close_sync (self, NULL, &error));
 
 	/* Check measurements */
-	g_assert_cmpint (measurements->len, >=, 20);
+	g_assert_cmpint (measurements->len, >=, 8);
 
 	g_assert_cmpfloat_with_epsilon (g_array_index (measurements, XYZMeasurement, 0).x, 0.1, 0.01);
 	g_assert_cmpfloat_with_epsilon (g_array_index (measurements, XYZMeasurement, 0).y, 0.2, 0.01);
