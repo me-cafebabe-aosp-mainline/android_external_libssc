@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mocking SSC DSP with ssc-server to emulate DSP on non-Qualcomm environments.
 - Release instructions in RELEASE.md.
 - Set `G_LOG_DOMAIN` during build to 'libssc' for easier debugging.
+- Wait for DSP to become available during boot.
 
 ### Changed
 - Reduced API surface. All private interfaces are now excluded from public usage.
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Document availability sensor attribute and specify QMI header length.
 - Path to protoc and protoc-c for compiling ProtoBuff messages.
 - Public headers are now correctly installed.
+- Sync API race conditions.
 
 ## [0.1.6] - 2024-06-08
 
