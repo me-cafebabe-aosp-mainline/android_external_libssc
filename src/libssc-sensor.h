@@ -34,6 +34,7 @@ G_DECLARE_DERIVABLE_TYPE (SSCSensor, ssc_sensor, SSC, SENSOR, GObject);
 typedef enum {
 	SSC_SENSOR_ERROR_UNAVAILABLE,
 	SSC_SENSOR_ERROR_SAMPLE_RATE_UNAVAILABLE,
+	SSC_SENSOR_ERROR_NO_SERVICE,
 } SSCSensorError;
 
 GQuark ssc_sensor_error_quark(void);

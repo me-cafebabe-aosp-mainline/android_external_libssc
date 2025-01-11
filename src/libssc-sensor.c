@@ -22,6 +22,8 @@
 #include "ssc-sensor-suid.pb-c.h"
 #include "libssc-sensor.h"
 
+#define MAX_RETRIES 10
+
 enum {
 	PROP_NAME = 1,
 	PROP_UID_LOW = 2,
@@ -55,6 +57,8 @@ typedef struct _SSCSensorPrivate {
 	SSCClient *client;
 	guint report_id;
 	gboolean attr_populated;
+	gboolean service_available;
+	guint service_retries;
 } SSCSensorPrivate;
 
 static void async_initable_iface_init (GAsyncInitableIface *iface);
@@ -62,6 +66,12 @@ static void async_initable_iface_init (GAsyncInitableIface *iface);
 G_DEFINE_TYPE_WITH_CODE (SSCSensor, ssc_sensor, G_TYPE_OBJECT,
 			 G_ADD_PRIVATE (SSCSensor)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_INITABLE, async_initable_iface_init))
+
+static void
+wait_for_sensor_service (SSCSensor *self, GTask *task);
+
+static void
+discover (SSCSensor *self, GTask *task);
 
 static void
 attribute (SSCSensor *self, GTask *task);
@@ -265,8 +275,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	SSCSensorPrivate *priv = NULL;
 	ReportReceivedContext *ctx = user_data;
 	gboolean attributes_populated = FALSE;
+	GError *error = NULL;
 
 	priv = ssc_sensor_get_instance_private (ctx->sensor);
+
 
 	/* Discover response */
 	if (uid_high == SSC_SENSOR_UID_SUID_HIGH && uid_low == SSC_SENSOR_UID_SUID_LOW && msg_id == SSC_MSG_RESPONSE_SUID) {
@@ -275,6 +287,40 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		if (suid_msg == NULL)
 		{
 			g_warning ("Failed to unpack SUID Discover message");
+			return;
+		}
+
+		/* Intercept requests for service discovery first */
+		g_debug("%s data type", suid_msg->data_type);
+		if (g_strcmp0 (suid_msg->data_type, "registry") == 0) {
+			/* 'registry' sensor found, service available */
+			priv->service_available = TRUE;
+			ssc_suid_response__free_unpacked (suid_msg, NULL);
+
+			discover(ctx->sensor, ctx->task);
+			return;
+		}
+
+		if (!priv->service_available) {
+			priv->service_retries++;
+			ssc_suid_response__free_unpacked (suid_msg, NULL);
+
+			/* Fail to discover when service is not available after 30s */
+			if (priv->service_retries >= MAX_RETRIES) {
+				g_signal_handler_disconnect (self, priv->report_id);
+				priv->report_id = 0;
+
+				g_set_error (&error, ssc_sensor_error_quark(), SSC_SENSOR_ERROR_NO_SERVICE,
+					     "Sensor service unavailable");
+				g_task_return_error (ctx->task, error);
+				g_clear_object (&ctx->task);
+				g_slice_free (ReportReceivedContext, ctx);
+				return;
+			}
+
+			g_usleep(1 * G_USEC_PER_SEC);
+			g_debug ("'registry' sensor unavailable, retrying... (%d/%d)", priv->service_retries, MAX_RETRIES);
+			wait_for_sensor_service (ctx->sensor, ctx->task);
 			return;
 		}
 
@@ -294,6 +340,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 
 			/* Sensor discovered, populate attributes */
 			attribute (ctx->sensor, ctx->task);
+
 			return;
 		/* No sensor available for specified data type, complete task */
 		} else {
@@ -306,6 +353,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			g_task_return_boolean (ctx->task, FALSE);
 			g_clear_object (&ctx->task);
 			g_slice_free (ReportReceivedContext, ctx);
+
 			return;
 		}
 	/* Attributes populating response */
@@ -516,6 +564,61 @@ discover (SSCSensor *self, GTask *task)
 /*****************************************************************************/
 
 static void
+wait_for_sensor_service_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
+{
+	GError *error = NULL;
+	GTask *task = G_TASK (user_data);
+
+	if (!ssc_client_send_finish (self, result, &error)) {
+		g_task_return_error (task, error);
+		g_clear_object (&task);
+		return;
+	}
+
+	/* Task completion will happen when sensor discovery is complete */
+	g_debug ("Polled 'registry' sensor for service availability");
+}
+
+static void
+wait_for_sensor_service (SSCSensor *self, GTask *task)
+{
+	SSCSensorPrivate *priv = NULL;
+	SscSuidRequest msg;
+	g_autoptr (GArray) buf = NULL;
+
+	priv = ssc_sensor_get_instance_private (self);
+
+	g_debug ("Checking sensor service availability");
+
+	/*
+	 * Monitor the availability of the sensor service on the DSP
+	 * by polling for the 'registry' sensor until it available.
+	 * If it becomes available, all other sensors can be initialized.
+	 */
+	ssc_suid_request__init (&msg);
+	msg.data_type = "registry";
+	msg.has_enable_updates = true;
+	msg.enable_updates = false;
+	msg.has_only_default_values = true;
+	msg.only_default_values = true;
+
+	buf = g_array_new (FALSE, FALSE, 1);
+	g_array_set_size (buf, ssc_suid_request__get_packed_size (&msg));
+	ssc_suid_request__pack (&msg, (unsigned char*) buf->data);
+
+	ssc_client_send (priv->client,
+			 SSC_SENSOR_UID_SUID_HIGH,
+			 SSC_SENSOR_UID_SUID_LOW,
+			 SSC_MSG_REQUEST_SUID,
+			 buf,
+			 g_task_get_cancellable (task),
+			 (GAsyncReadyCallback)wait_for_sensor_service_ready,
+			 task); 
+}
+
+/*****************************************************************************/
+
+static void
 client_ready (SSCClient *client, GAsyncResult *result, gpointer user_data)
 {
 	GTask *task = G_TASK (user_data);
@@ -545,7 +648,10 @@ client_ready (SSCClient *client, GAsyncResult *result, gpointer user_data)
 			G_CALLBACK (report_received),
 			ctx);
 
-	discover (self, task);
+	/* Wait for sensor service before discovering sensor */
+	priv->service_available = FALSE;
+	priv->service_retries = 0;
+	wait_for_sensor_service (self, task);
 }
 
 static void
