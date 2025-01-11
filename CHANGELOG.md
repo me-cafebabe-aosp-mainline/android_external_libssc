@@ -96,4 +96,4 @@ Initial release.
 [0.1.4]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.3...0.1.4
 [0.1.5]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.4...0.1.5
 [0.1.6]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.5...0.1.6
-[0.2.0]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.6...0.2.0
+[0.2.0]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.6...v0.2.0
