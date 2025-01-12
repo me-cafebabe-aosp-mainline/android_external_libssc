@@ -35,6 +35,7 @@ enum {
 	PROP_SAMPLE_RATE = 8,
 	PROP_CLIENT = 9,
 	PROP_FILE = 10,
+	PROP_MOUNT_MATRIX = 11,
 	N_PROPERTIES
 };
 static GParamSpec *properties[N_PROPERTIES];
@@ -53,6 +54,7 @@ typedef struct _SSCSensorPrivate {
 	guint stream_type;
 	gboolean available;
 	gfloat sample_rate;
+	gfloat mount_matrix[3][3];
 
 	SSCClient *client;
 	guint report_id;
@@ -275,6 +277,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	SSCSensorPrivate *priv = NULL;
 	ReportReceivedContext *ctx = user_data;
 	gboolean attributes_populated = FALSE;
+	gboolean mount_matrix_attribute_populated = FALSE;
 	GError *error = NULL;
 
 	priv = ssc_sensor_get_instance_private (ctx->sensor);
@@ -366,33 +369,43 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		for (gsize i = 0; i < attr_msg->n_attr; i++) {
-		       switch (attr_msg->attr[i]->id) {
-		       	case SSC_ATTRIBUTE_NAME:
-		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
-		       			priv->name = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
-		       		break;
-		       	case SSC_ATTRIBUTE_VENDOR:
-		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
-		       			priv->vendor = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
-		       		break;
-		       	case SSC_ATTRIBUTE_AVAILABLE:
-		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_b)
-		       			priv->available = attr_msg->attr[i]->value_array->v[0]->b;
-		       		break;
-		       	case SSC_ATTRIBUTE_SAMPLE_RATE:
-		       		/* Only a single sample rate is supported for now. */
-		       		for (gsize j = 0; j < attr_msg->attr[i]->value_array->n_v; j++) {
-		       			if (attr_msg->attr[i]->value_array->v[j]->has_f
-		       			 && attr_msg->attr[i]->value_array->v[j]->f > 0) {
-		       				priv->sample_rate = attr_msg->attr[i]->value_array->v[j]->f;
-		       				break;
-		       			}
-		       		}
-		       		break;
-		       	case SSC_ATTRIBUTE_STREAM_TYPE:
-		       		if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i)
-		       			priv->stream_type = attr_msg->attr[i]->value_array->v[0]->i;
-		       		break;
+			switch (attr_msg->attr[i]->id) {
+		       		case SSC_ATTRIBUTE_NAME:
+		       			if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+		       				priv->name = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
+		       			break;
+				case SSC_ATTRIBUTE_VENDOR:
+					if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->s)
+						priv->vendor = g_strdup (attr_msg->attr[i]->value_array->v[0]->s);
+					break;
+				case SSC_ATTRIBUTE_AVAILABLE:
+					if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_b)
+						priv->available = attr_msg->attr[i]->value_array->v[0]->b;
+					break;
+				case SSC_ATTRIBUTE_SAMPLE_RATE:
+					/* Only a single sample rate is supported for now. */
+					for (gsize j = 0; j < attr_msg->attr[i]->value_array->n_v; j++) {
+						if (attr_msg->attr[i]->value_array->v[j]->has_f
+						 && attr_msg->attr[i]->value_array->v[j]->f > 0) {
+							priv->sample_rate = attr_msg->attr[i]->value_array->v[j]->f;
+							break;
+						}
+					}
+					break;
+				case SSC_ATTRIBUTE_STREAM_TYPE:
+					if (attr_msg->attr[i]->value_array->n_v == 1 && attr_msg->attr[i]->value_array->v[0]->has_i)
+						priv->stream_type = attr_msg->attr[i]->value_array->v[0]->i;
+					break;
+				case SSC_ATTRIBUTE_MOUNT_MATRIX:
+					mount_matrix_attribute_populated = TRUE;
+					/* 3x3 mount matrix has max 9 values */
+					for (gsize j = 0; j < MIN(attr_msg->attr[i]->value_array->n_v, 9); j++) {
+						if (attr_msg->attr[i]->value_array->v[j]->has_f
+						 && attr_msg->attr[i]->value_array->v[j]->f > 0) {
+							priv->mount_matrix[j/3][j%3] = attr_msg->attr[i]->value_array->v[j]->f;
+						}
+					}
+					break;
 		       }
 		}
 
@@ -405,6 +418,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		g_debug ("  stream-type: %s", priv->stream_type == SSC_STREAM_TYPE_CONTINUOUS ? "continuous" : "on-change");
 		g_debug ("  sample-rate: %f Hz", priv->sample_rate);
 		g_debug ("  available: %s", priv->available ? "yes" : "no");
+		if (mount_matrix_attribute_populated) {
+			g_debug ("  mount-matrix: [[%f,%f,%f],[%f,%f,%f],[%f,%f,%f]]",
+                        	 priv->mount_matrix[0][0], priv->mount_matrix[0][1], priv->mount_matrix[0][2],
+				 priv->mount_matrix[1][0], priv->mount_matrix[1][1], priv->mount_matrix[1][2],
+				 priv->mount_matrix[2][0], priv->mount_matrix[2][1], priv->mount_matrix[2][2]);
+		} else
+			g_debug ("  mount-matrix: undefined");
 
 		/* Sensor initialized, complete task and stop listening */
 		if (ctx->task) {
@@ -736,6 +756,9 @@ sensor_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *
 		case PROP_SAMPLE_RATE:
 			g_value_set_float (value, priv->sample_rate);
 			break;
+		case PROP_MOUNT_MATRIX:
+			g_value_set_pointer (value, priv->mount_matrix);
+			break;
 		case PROP_CLIENT:
 			g_value_set_object (value, priv->client);
 			break;
@@ -846,6 +869,13 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     G_PARAM_READABLE);
 	g_object_class_install_property (object_class, PROP_SAMPLE_RATE, properties[PROP_SAMPLE_RATE]);
 
+	properties[PROP_MOUNT_MATRIX] =
+		g_param_spec_pointer (SSC_SENSOR_MOUNT_MATRIX,
+			      "Mount matrix",
+			      "The mount matrix of the sensor in the physical space.",
+			      G_PARAM_READABLE);
+	g_object_class_install_property (object_class, PROP_MOUNT_MATRIX, properties[PROP_MOUNT_MATRIX]);
+
 	properties[PROP_CLIENT] =
 		g_param_spec_object (SSC_SENSOR_CLIENT,
 				     "SSC Client",
@@ -858,6 +888,15 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 static void
 ssc_sensor_init (SSCSensor *self)
 {
+	SSCSensorPrivate *priv = NULL;
+
+	priv = ssc_sensor_get_instance_private (self);
+
+	/* Use identity matrix in case no mount matrix is exposed */
+	memset(priv->mount_matrix, 0, sizeof(priv->mount_matrix));
+	priv->mount_matrix[0][0] = 1.0;
+	priv->mount_matrix[1][1] = 1.0;
+	priv->mount_matrix[2][2] = 1.0;
 }
 
 SSCSensor *

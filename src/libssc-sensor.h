@@ -48,6 +48,7 @@ GQuark ssc_sensor_error_quark(void);
 #define SSC_SENSOR_AVAILABLE "available"
 #define SSC_SENSOR_SAMPLE_RATE "sample-rate"
 #define SSC_SENSOR_CLIENT "client"
+#define SSC_SENSOR_MOUNT_MATRIX "mount-matrix"
 
 void		 ssc_sensor_new (gchar *data_type, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 SSCSensor 	*ssc_sensor_new_finish (GAsyncResult *result, GError **error);
