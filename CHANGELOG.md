@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Extract mount matrix and apply it for accelerometers.
+
 ### Fixed
 - Cleaned up white space.
 - Fixed 2 memory leaks caused.
