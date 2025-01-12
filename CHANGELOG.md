@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Mocking Protobuf messages are now stored in the right directory.
+- Mocking binary and data are now installed in the right directory.
+
 ## [0.2.0] - 2025-01-11
 
 ### Added

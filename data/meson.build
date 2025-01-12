@@ -54,7 +54,7 @@ foreach m: msgs
     output: [python_name + '_pb2.py'],
     command: [protoc_tool, '-I=@CURRENT_SOURCE_DIR@', '--python_out=@OUTDIR@', '@INPUT@'],
     install: true,
-    install_dir: [libssc_mocking_data_dir]
+    install_dir: [libssc_mocking_dir]
   )
   python_gen += protobuf_python_gen[0]
 endforeach
