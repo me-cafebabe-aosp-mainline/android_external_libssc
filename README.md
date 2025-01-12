@@ -35,6 +35,8 @@ General information about libssc, documentation, and other information can be fo
 `libssc` tests requires an additional dependency to compile the ProtoBuf messages for simulating the DSP QMI responses:
 
 - `protobuf`
+- `python-gobject3`
+- `qrtr-libs`
 
 ```
 cd build

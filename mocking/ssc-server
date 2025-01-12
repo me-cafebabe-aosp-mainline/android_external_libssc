@@ -27,6 +27,9 @@ import argparse
 from multiprocessing import Process
 from ctypes import CDLL, c_int, byref, c_char_p, addressof, create_string_buffer, Structure
 
+# Import build path for running unittests
+sys.path.append(os.path.abspath('../_build/data'))
+
 from ssc import *
 
 VERSION = '0.2.1'
@@ -66,7 +69,13 @@ class SSCMockingServer():
         self.workers = {}
 
         print(f'👋 SSC Mocking Server v{VERSION}')
-        self._qrtr = CDLL(os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'))
+        try:
+            # Local git submodule
+            self._qrtr = CDLL(os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'))
+        except OSError:
+            # Installed in OS
+            self._qrtr = CDLL('/usr/lib/libqrtr.so.1.1')
+
 
         print('ℹ️  Creating QRTR socket')
         self.sock = self._qrtr.qrtr_open(port)
