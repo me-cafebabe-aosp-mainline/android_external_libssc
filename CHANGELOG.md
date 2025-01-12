@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.2.1] - 2025-01-12
+
 ### Fixed
 - Mocking Protobuf messages are now stored in the right directory.
 - Mocking binary and data are now installed in the right directory.
@@ -101,3 +103,4 @@ Initial release.
 [0.1.5]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.4...0.1.5
 [0.1.6]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.5...0.1.6
 [0.2.0]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.6...v0.2.0
+[0.2.1]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.0...v0.2.1
