@@ -81,6 +81,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	SignalContext *ctx = NULL;
 	guint64 sensor_uid_low;
 	guint64 sensor_uid_high;
+	gfloat (*mount_matrix)[3];
 	gfloat x;
 	gfloat y;
 	gfloat z;
@@ -88,6 +89,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	g_object_get (sensor,
 		      SSC_SENSOR_UID_HIGH, &sensor_uid_high,
 		      SSC_SENSOR_UID_LOW, &sensor_uid_low,
+		      SSC_SENSOR_MOUNT_MATRIX, &mount_matrix,
 		      NULL);
 
 	if (sensor_uid_high == uid_high && sensor_uid_low == uid_low && msg_id == SSC_MSG_REPORT_MEASUREMENT) {
@@ -106,9 +108,12 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			/* Emit signal in main context instead of thread's context */
 			ctx = g_slice_new0 (SignalContext);
 			ctx->sensor = sensor;
-			ctx->x = x;
-			ctx->y = y;
-			ctx->z = z;
+
+			/* Apply mount matrix specified in https://www.kernel.org/doc/Documentation/devicetree/bindings/iio/mount-matrix.txt */
+			ctx->x = mount_matrix[0][0] * x + mount_matrix[0][1] * y + mount_matrix[0][2] * z;
+			ctx->y = mount_matrix[1][0] * x + mount_matrix[1][1] * y + mount_matrix[1][2] * z;
+			ctx->z = mount_matrix[2][0] * x + mount_matrix[2][1] * y + mount_matrix[2][2] * z;
+
 			g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, emit_signal, ctx, (GDestroyNotify)signal_context_free);
 		}
 

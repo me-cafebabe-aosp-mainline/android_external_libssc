@@ -398,10 +398,9 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 					break;
 				case SSC_ATTRIBUTE_MOUNT_MATRIX:
 					mount_matrix_attribute_populated = TRUE;
-					/* 3x3 mount matrix has max 9 values */
+					/* 3x3 mount matrix has max 9 values but a 3x4 matrix is provided, use the first 9 values */
 					for (gsize j = 0; j < MIN(attr_msg->attr[i]->value_array->n_v, 9); j++) {
-						if (attr_msg->attr[i]->value_array->v[j]->has_f
-						 && attr_msg->attr[i]->value_array->v[j]->f > 0) {
+						if (attr_msg->attr[i]->value_array->v[j]->has_f) {
 							priv->mount_matrix[j/3][j%3] = attr_msg->attr[i]->value_array->v[j]->f;
 						}
 					}
