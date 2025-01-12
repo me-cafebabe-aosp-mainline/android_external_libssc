@@ -337,6 +337,21 @@ class SSC():
                         attributes.append((attr_id, SscCommon.SscAttrValue(s=attr_value)))
                     elif type(attr_value) is bool:
                         attributes.append((attr_id, SscCommon.SscAttrValue(b=attr_value)))
+                    elif type(attr_value) is list:
+                        values = []
+                        # Attributes with lists as type need to be converted to a list of ProtoBuf properties
+                        for v in attr_value:
+                            if type(v) is int:
+                                values.append(SscCommon.SscAttrValue(i=v))
+                            elif type(v) is float:
+                                values.append(SscCommon.SscAttrValue(f=v))
+                            elif type(v) is str:
+                                values.append(SscCommon.SscAttrValue(s=v))
+                            elif type(v) is bool:
+                                values.append(SscCommon.SscAttrValue(b=v))
+                            else:
+                                raise NotImplementedError('Attribute value type in list unsupported')
+                        attributes.append((attr_id, values))
                     else:
                         raise NotImplementedError('Attribute value type unsupported')
                 break
@@ -350,7 +365,15 @@ class SSC():
             attr = SscCommon.SscAttr()
             attr_array_value = SscCommon.SscAttrArrayValue()
             attr.id = a[0]
-            attr.value_array.v.append(a[1])
+
+            # Attributes with a list need to be repeated
+            if type(a[1]) is list:
+                for element in a[1]:
+                    attr.value_array.v.append(element)
+            # Regular attribute
+            else:
+                attr.value_array.v.append(a[1])
+
             attr_response.attr.append(attr)
 
         # Protobuf envelope to pack attributes message
