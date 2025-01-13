@@ -73,8 +73,12 @@ class SSCMockingServer():
             # Local git submodule
             self._qrtr = CDLL(os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'))
         except OSError:
-            # Installed in OS
-            self._qrtr = CDLL('/usr/lib/libqrtr.so.1.1')
+            try:
+                # Installed in OS (Alpine)
+                self._qrtr = CDLL('/usr/lib/libqrtr.so.1.1')
+            except OSError:
+                # Installed in OS (Debian)
+                self._qrtr = CDLL('/usr/lib/x86_64-linux-gnu/libqrtr.so.1')
 
 
         print('ℹ️  Creating QRTR socket')
