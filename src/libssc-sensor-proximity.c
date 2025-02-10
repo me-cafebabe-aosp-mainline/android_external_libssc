@@ -30,6 +30,8 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
+GMutex proximity_running_mutex;
+GCond proximity_running_cond;
 gboolean proximity_thread_running;
 
 typedef struct _SSCSensorProximityPrivate {
@@ -174,7 +176,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		/* Declare that the report receiving thread is running */
+		g_mutex_lock (&proximity_running_mutex);
 		proximity_thread_running = TRUE;
+		g_cond_signal (&proximity_running_cond);
+		g_mutex_unlock (&proximity_running_mutex);
 
 		/* Only emit signal when measurement actually changed or if the sensor was recently opened */
 		priv = ssc_sensor_proximity_get_instance_private (sensor);
@@ -347,7 +352,9 @@ ssc_sensor_proximity_open_sync (SSCSensorProximity *self, GCancellable *cancella
 	success = ssc_sensor_proximity_open_finish (self, ctx.result, error);
 
 	/* Start report thread to watch for incoming measurements over QMI indications */
+	g_mutex_lock (&proximity_running_mutex);
 	proximity_thread_running = FALSE;
+	g_mutex_unlock (&proximity_running_mutex);
 	priv->thread = g_thread_new ("report-receiver-proximity", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
@@ -355,8 +362,10 @@ ssc_sensor_proximity_open_sync (SSCSensorProximity *self, GCancellable *cancella
 	g_object_unref (ctx.result);
 
 	/* Wait until report receiving thread is running */
+	g_mutex_lock (&proximity_running_mutex);
 	while (!proximity_thread_running)
-		g_thread_yield ();
+		g_cond_wait (&proximity_running_cond, &proximity_running_mutex);
+	g_mutex_unlock (&proximity_running_mutex);
 
 	return success;
 }

@@ -27,6 +27,8 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
+GMutex light_running_mutex;
+GCond light_running_cond;
 gboolean light_thread_running;
 
 typedef struct _SSCSensorLightPrivate {
@@ -137,7 +139,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		ssc_light_response__free_unpacked (msg, NULL);
 
 		/* Declare that the report receiving thread is running */
+		g_mutex_lock (&light_running_mutex);
 		light_thread_running = TRUE;
+		g_cond_signal (&light_running_cond);
+		g_mutex_unlock (&light_running_mutex);
 	}
 }
 
@@ -298,7 +303,9 @@ ssc_sensor_light_open_sync (SSCSensorLight *self, GCancellable *cancellable, GEr
 	success = ssc_sensor_light_open_finish (self, ctx.result, error);
 
 	/* Start report thread to watch for incoming measurements over QMI indications */
+	g_mutex_lock (&light_running_mutex);
 	light_thread_running = FALSE;
+	g_mutex_unlock (&light_running_mutex);
 	priv->thread = g_thread_new ("report-receiver-light", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
@@ -306,8 +313,10 @@ ssc_sensor_light_open_sync (SSCSensorLight *self, GCancellable *cancellable, GEr
 	g_object_unref (ctx.result);
 
 	/* Wait until report receiving thread is running */
+	g_mutex_lock (&light_running_mutex);
 	while (!light_thread_running)
-		g_thread_yield ();
+		g_cond_wait (&light_running_cond, &light_running_mutex);
+	g_mutex_unlock (&light_running_mutex);
 
 	return success;
 }

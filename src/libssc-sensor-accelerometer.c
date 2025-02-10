@@ -27,6 +27,8 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
+GMutex accelerometer_running_mutex;
+GCond accelerometer_running_cond;
 gboolean accelerometer_thread_running;
 
 typedef struct _SSCSensorAccelerometerPrivate {
@@ -143,7 +145,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		ssc_accelerometer_response__free_unpacked (msg, NULL);
 
 		/* Declare that the report receiving thread is running */
+		g_mutex_lock (&accelerometer_running_mutex);
 		accelerometer_thread_running = TRUE;
+		g_cond_signal (&accelerometer_running_cond);
+		g_mutex_unlock (&accelerometer_running_mutex);
 	}
 }
 
@@ -303,7 +308,9 @@ ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *
 	success = ssc_sensor_accelerometer_open_finish (self, ctx.result, error);
 
 	/* Start report thread to watch for incoming measurements over QMI indications */
+	g_mutex_lock (&accelerometer_running_mutex);
 	accelerometer_thread_running = FALSE;
+	g_mutex_unlock (&accelerometer_running_mutex);
 	priv->thread = g_thread_new ("report-receiver-accelerometer", report_receiver_thread, self);
 
 	g_main_context_pop_thread_default (priv->context);
@@ -311,8 +318,10 @@ ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *
 	g_object_unref (ctx.result);
 
 	/* Wait until report receiving thread is running */
+	g_mutex_lock (&accelerometer_running_mutex);
 	while (!accelerometer_thread_running)
-		g_thread_yield ();
+		g_cond_wait (&accelerometer_running_cond, &accelerometer_running_mutex);
+	g_mutex_unlock (&accelerometer_running_mutex);
 
 	return success;
 }
