@@ -85,6 +85,7 @@ class SSCMockingServer():
         ]:
           try:
             self._qrtr = CDLL(path)
+            break
           except OSError as e:
             err = e
             continue
