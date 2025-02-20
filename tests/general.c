@@ -458,7 +458,7 @@ sensor_unavailable_ready (SSCClient *self, GAsyncResult *result, gpointer user_d
 	SSCSensor *sensor = NULL;
 
 	sensor = ssc_sensor_new_finish (result, &error);
-	g_assert_true (error == NULL);
+	g_assert_no_error (error);
 	ssc_sensor_open (sensor, NULL, (GAsyncReadyCallback) sensor_unavailable_open_ready, user_data);
 }
 
@@ -519,7 +519,7 @@ sensor_no_sample_rate_ready (SSCClient *self, GAsyncResult *result, gpointer use
 	SSCSensor *sensor = NULL;
 
 	sensor = ssc_sensor_new_finish (result, &error);
-	g_assert_true (error == NULL);
+	g_assert_no_error (error);
 	ssc_sensor_open (sensor, NULL, (GAsyncReadyCallback) sensor_no_sample_rate_open_ready, user_data);
 }
 
