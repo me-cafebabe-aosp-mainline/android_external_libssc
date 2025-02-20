@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.2.2] - 2025-02-21
+
 ### Fixed
 - Load libqrtr on Debian correctly for mocking SSC.
+- Use `g_assert_no_error` in tests.
+- Let meson look for Python instead of specifying the binary name when mocking.
+- Add `g_cond` for report threads to avoid race conditions.
 
 ## [0.2.1] - 2025-01-12
 
@@ -107,3 +112,4 @@ Initial release.
 [0.1.6]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.5...0.1.6
 [0.2.0]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.6...v0.2.0
 [0.2.1]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.0...v0.2.1
+[0.2.2]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.1...v0.2.2
