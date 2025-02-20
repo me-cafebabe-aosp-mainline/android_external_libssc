@@ -53,6 +53,8 @@ class SSCMockingServer():
     """
     SSC Server mocking class.
     """
+    _qrtr = None
+    sock = None
 
     def __init__(self, port: int = 0, verbose: bool = False):
         """
@@ -250,13 +252,15 @@ class SSCMockingServer():
             self.workers[worker].join()
             
         print(f'ℹ️  Shutting down QRTR server (service {SSC_SERVICE_ID})')
-        error = self._qrtr.qrtr_remove_server(self.sock, SSC_SERVICE_ID)
-        if error:
-            print('❌ Failed to shutdown QRTR server', file=sys.stderr)
-            sys.exit(ERROR_QRTR_SERVER_FAILURE)
+        if self._qrtr is not None:
+          if self.sock:
+            error = self._qrtr.qrtr_remove_server(self.sock, SSC_SERVICE_ID)
+            if error:
+              print('❌ Failed to shutdown QRTR server', file=sys.stderr)
+              sys.exit(ERROR_QRTR_SERVER_FAILURE)
 
-        print('ℹ️  Closing QRTR socket')
-        self._qrtr.qrtr_close(self.sock)
+          print('ℹ️  Closing QRTR socket')
+          self._qrtr.qrtr_close(self.sock)
 
         print('👋 Bye!')
 
