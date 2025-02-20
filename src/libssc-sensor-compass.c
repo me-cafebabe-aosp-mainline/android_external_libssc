@@ -27,9 +27,9 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
-GMutex compass_running_mutex;
-GCond compass_running_cond;
-gboolean compass_thread_running;
+static GMutex compass_running_mutex;
+static GCond compass_running_cond;
+static gboolean compass_thread_running;
 
 typedef struct _SSCSensorCompassPrivate {
 	guint report_id;

@@ -27,9 +27,9 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
-GMutex light_running_mutex;
-GCond light_running_cond;
-gboolean light_thread_running;
+static GMutex light_running_mutex;
+static GCond light_running_cond;
+static gboolean light_thread_running;
 
 typedef struct _SSCSensorLightPrivate {
 	guint report_id;

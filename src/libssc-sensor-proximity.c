@@ -30,9 +30,9 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
-GMutex proximity_running_mutex;
-GCond proximity_running_cond;
-gboolean proximity_thread_running;
+static GMutex proximity_running_mutex;
+static GCond proximity_running_cond;
+static gboolean proximity_thread_running;
 
 typedef struct _SSCSensorProximityPrivate {
 	guint report_id;

@@ -27,9 +27,9 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
-GMutex magnetometer_running_mutex;
-GCond magnetometer_running_cond;
-gboolean magnetometer_thread_running;
+static GMutex magnetometer_running_mutex;
+static GCond magnetometer_running_cond;
+static gboolean magnetometer_thread_running;
 
 typedef struct _SSCSensorMagnetometerPrivate {
 	guint report_id;

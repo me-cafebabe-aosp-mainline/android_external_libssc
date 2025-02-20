@@ -27,9 +27,9 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
-GMutex accelerometer_running_mutex;
-GCond accelerometer_running_cond;
-gboolean accelerometer_thread_running;
+static GMutex accelerometer_running_mutex;
+static GCond accelerometer_running_cond;
+static gboolean accelerometer_thread_running;
 
 typedef struct _SSCSensorAccelerometerPrivate {
 	guint report_id;
