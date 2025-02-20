@@ -1,5 +1,5 @@
 pymod = import('python')
-python = pymod.find_installation('python')
+python = pymod.find_installation()
 python.dependency()
 
 mocking_sources = files(
