@@ -24,6 +24,7 @@ import time
 import errno
 import signal
 import argparse
+import sysconfig
 from multiprocessing import Process
 from ctypes import CDLL, c_int, byref, c_char_p, addressof, create_string_buffer, Structure
 
@@ -70,6 +71,7 @@ class SSCMockingServer():
         """
         self.workers = {}
         self._qrtr = None
+        multiarch = sysconfig.get_config_var('MULTIARCH')
 
         print(f'👋 SSC Mocking Server v{VERSION}')
         err = None
@@ -79,7 +81,7 @@ class SSCMockingServer():
           # Installed in OS (Alpine)
           '/usr/lib/libqrtr.so.1.1',
           # Installed in OS (Debian)
-          '/usr/lib/x86_64-linux-gnu/libqrtr.so.1'
+          f'/usr/lib/{multiarch}/libqrtr.so.1'
         ]:
           try:
             self._qrtr = CDLL(path)
