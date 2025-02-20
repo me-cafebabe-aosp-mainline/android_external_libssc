@@ -69,19 +69,28 @@ class SSCMockingServer():
             Log raw messages. Default False.
         """
         self.workers = {}
+        self._qrtr = None
 
         print(f'👋 SSC Mocking Server v{VERSION}')
-        try:
-            # Local git submodule
-            self._qrtr = CDLL(os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'))
-        except OSError:
-            try:
-                # Installed in OS (Alpine)
-                self._qrtr = CDLL('/usr/lib/libqrtr.so.1.1')
-            except OSError:
-                # Installed in OS (Debian)
-                self._qrtr = CDLL('/usr/lib/x86_64-linux-gnu/libqrtr.so.1')
+        err = None
+        for path in [
+          # Local git submodule
+          os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'),
+          # Installed in OS (Alpine)
+          '/usr/lib/libqrtr.so.1.1',
+          # Installed in OS (Debian)
+          '/usr/lib/x86_64-linux-gnu/libqrtr.so.1'
+        ]:
+          try:
+            self._qrtr = CDLL(path)
+          except OSError as e:
+            err = e
+            continue
+          err = None
 
+        if err:
+          print(f'❌ Failed to load libqrtr: {err}', file=sys.stderr)
+          sys.exit(ERROR_QRTR_PORT_UNAVAILABLE)
 
         print('ℹ️  Creating QRTR socket')
         self.sock = self._qrtr.qrtr_open(port)
