@@ -134,6 +134,28 @@ static void proximity_measurement (SSCSensorProximity *sensor, gboolean near, gp
 
 /*****************************************************************************/
 
+static gboolean
+gyroscope_close_cb (SSCSensorGyroscope *self)
+{
+	g_autoptr (GError) err = NULL;
+
+	if (!ssc_sensor_gyroscope_close_sync (self, NULL, &err))
+		g_printf ("Unable to close gyroscope sensor: %s\n", err ? err->message : "UNKNOWN");
+
+	g_debug ("gyroscope sensor disabled");
+	exit(0);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void gyroscope_measurement (SSCSensorGyroscope *sensor, gfloat velocity_x, gfloat velocity_y, gfloat velocity_z, gpointer user_data)
+{
+	g_printf ("Gyroscope sensor measurement: X=%f Y=%f Z=%f m/s\n", velocity_x, velocity_y, velocity_z);
+	fflush(stdout);
+}
+
+/*****************************************************************************/
+
 int main(int argc, char *argv[])
 {
 	g_autoptr(GOptionContext) opt_context = NULL;
@@ -252,8 +274,23 @@ int main(int argc, char *argv[])
 			return OPEN_FAIL_EXIT_CODE;
 		}
 		g_timeout_add_seconds (timeout, (GSourceFunc)compass_close_cb, compass);
+	} else if (g_strcmp0 (sensor_str, "gyroscope") == 0) {
+		SSCSensorGyroscope *gyroscope = ssc_sensor_gyroscope_new_sync (NULL, &err);
+		if (!gyroscope) {
+			g_printf ("Unable to initialize gyroscope sensor: %s\n", err ? err->message : "UNKNOWN");
+			return INIT_FAIL_EXIT_CODE;
+		}
+		g_signal_connect (gyroscope,
+			  	  "measurement",
+			  	  G_CALLBACK (gyroscope_measurement),
+			  	  NULL);
+		if (!ssc_sensor_gyroscope_open_sync (gyroscope, NULL, &err)) {
+			g_printf ("Unable to open gyroscope sensor: %s\n", err ? err->message : "UNKNOWN");
+			return OPEN_FAIL_EXIT_CODE;
+		}
+		g_timeout_add_seconds (timeout, (GSourceFunc)gyroscope_close_cb, gyroscope);
 	} else {
-		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer', 'compass'\n");
+		g_printf ("Specify a supported sensor: 'proximity', 'light', 'accelerometer', 'magnetometer', 'compass', 'gyroscope'\n");
 		return GENERAL_FAIL_EXIT_CODE;
 	}
 

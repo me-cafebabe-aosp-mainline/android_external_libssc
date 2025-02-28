@@ -33,7 +33,8 @@ headers += files(
   'libssc-sensor-light.h',
   'libssc-sensor-accelerometer.h',
   'libssc-sensor-magnetometer.h',
-  'libssc-sensor-compass.h'
+  'libssc-sensor-compass.h',
+  'libssc-sensor-gyroscope.h',
 )
 
 install_headers(
@@ -50,6 +51,7 @@ sources += files(
   'libssc-sensor-accelerometer.c',
   'libssc-sensor-magnetometer.c',
   'libssc-sensor-compass.c',
+  'libssc-sensor-gyroscope.c',
 )
 
 cli_sources = files(
