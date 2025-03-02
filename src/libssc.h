@@ -24,5 +24,6 @@
 #include <libssc-sensor-compass.h>
 #include <libssc-sensor-light.h>
 #include <libssc-sensor-proximity.h>
+#include <libssc-sensor-gyroscope.h>
 
 #endif /* _LIBSSC_H_ */
