@@ -64,7 +64,7 @@ libssc = library(
   include_directories: includes,
   dependencies: deps,
   install: true,
-  soversion: '0',
+  soversion: '1',
 )
 
 ssccli = executable(
