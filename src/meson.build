@@ -58,13 +58,15 @@ cli_sources = files(
   'libssc-cli.c',
 )
 
+so_version = '1'
+
 libssc = library(
   'ssc',
   sources: sources,
   include_directories: includes,
   dependencies: deps,
   install: true,
-  soversion: '1',
+  soversion: so_version,
 )
 
 ssccli = executable(
