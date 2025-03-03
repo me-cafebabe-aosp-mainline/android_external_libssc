@@ -102,4 +102,13 @@ if dependency('gobject-introspection-1.0', required: false).found()
     header: 'libssc.h',
     install: true,
   )
+
+  if find_program('vapigen', required: false).found()
+    gnome.generate_vapi(
+      'libssc',
+      packages: ['gobject-2.0', 'glib-2.0', 'gio-2.0'],
+      sources: gir_files.get(0),
+      install: true,
+    )
+  endif
 endif
