@@ -88,3 +88,18 @@ pkg.generate(
   subdirs: libssc_glib_include_subdir,
   requires: ['glib-2.0', 'gobject-2.0', 'gio-2.0', 'qmi-glib'],
 )
+
+if dependency('gobject-introspection-1.0', required: false).found()
+  gnome = import('gnome')
+
+  gir_files = gnome.generate_gir(libssc,
+    includes: ['GLib-2.0', 'GObject-2.0', 'Gio-2.0', 'Qmi-1.0'],
+    sources: [headers, sources],
+    namespace: ns,
+    symbol_prefix: 'ssc',
+    nsversion: so_version,
+    export_packages: 'libssc-0',
+    header: 'libssc.h',
+    install: true,
+  )
+endif
