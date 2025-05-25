@@ -72,7 +72,7 @@ gio_unix_dep = dependency('gio-unix-2.0')
 libqmi_dep = dependency('qmi-glib', version: '>=' + libqmi_version)
 protobufc_dep = dependency('libprotobuf-c')
 m_dep = cc.find_library('m', required: true)
-protocc_tool = find_program('protoc-c', 'protoc-c')
+protocc_tool = find_program('protoc', 'protoc-gen-c')
 protoc_tool = find_program('protoc', 'protoc')
 
 deps = [

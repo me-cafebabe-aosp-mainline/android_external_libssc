@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not check for `NULL` when not needed.
 - Move Xiaomi Davinci struct to private header.
 - Add symbol list to avoid exposing more symbols.
+- Deprecation warning of protobuf-c tool.
 
 ## [0.3.0] - 2025-12-26
 
