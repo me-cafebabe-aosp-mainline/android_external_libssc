@@ -27,15 +27,9 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
-static GMutex compass_running_mutex;
-static GCond compass_running_cond;
-static gboolean compass_thread_running;
 
 typedef struct _SSCSensorCompassPrivate {
 	guint report_id;
-	GMainContext *context;
-	GThread *thread;
-	GMainLoop *loop;
 } SSCSensorCompassPrivate;
 
 G_DEFINE_TYPE_WITH_CODE (SSCSensorCompass, ssc_sensor_compass, SSC_TYPE_SENSOR,
@@ -86,7 +80,7 @@ calculate_azimuth (gfloat x, gfloat y, gfloat z, gfloat w)
 	q3_q0 = 2 * q3 * q0;
 	sq_q1 = 2 * q1 * q1;
 	sq_q3 = 2 * q3 * q3;
-	
+
 	r1 = q1_q2 - q3_q0;
 	r4 = 1 - sq_q1 - sq_q3;
 	azimuth = atan2(r1, r4);
@@ -99,29 +93,6 @@ calculate_azimuth (gfloat x, gfloat y, gfloat z, gfloat w)
 }
 
 /*****************************************************************************/
-
-static gpointer
-report_receiver_thread (gpointer user_data)
-{
-	SSCSensorCompass *self = SSC_SENSOR_COMPASS (user_data);
-	SSCSensorCompassPrivate *priv = NULL;
-
-	priv = ssc_sensor_compass_get_instance_private (self);
-	g_warn_if_fail (priv->context);
-
-	/*
-	 * Create main loop with context to receive QMI indications.
-	 * The loop will be quited in close_sync when the thread should exit.
-	 */
-	g_main_context_push_thread_default (priv->context);
-
-	priv->loop = g_main_loop_new (priv->context, TRUE);
-	g_main_loop_run (priv->loop);
-
-	g_main_context_pop_thread_default (priv->context);
-
-	return NULL;
-}
 
 static gboolean
 emit_signal (gpointer user_data) {
@@ -174,12 +145,6 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		ssc_rotationvector_response__free_unpacked (msg, NULL);
-
-		/* Declare that the report receiving thread is running */
-		g_mutex_lock (&compass_running_mutex);
-		compass_thread_running = TRUE;
-		g_cond_signal (&compass_running_cond);
-		g_mutex_unlock (&compass_running_mutex);
 	}
 }
 
@@ -235,36 +200,15 @@ ssc_sensor_compass_close (SSCSensorCompass *self, GCancellable *cancellable, GAs
 gboolean
 ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable, GError **error)
 {
-	SSCSensorCompassPrivate *priv = NULL;
 	gboolean success = FALSE;
 	SyncContext ctx;
 
-	priv = ssc_sensor_compass_get_instance_private (self);
-
-	/*
-	 * Stop report context thread before re-acquiring our context.
-	 * Test if loop and thread was initialized since opening and closing
-	 * the sensor quickly may cause a race condition where the thread
-	 * did not run yet.
-	 */
-	if (priv->loop) {
-		g_main_loop_quit (priv->loop);
-		g_main_loop_unref (priv->loop);
-	}
-
-	if (priv->thread)
-		g_thread_join (priv->thread);
-
-
-	/* Take over context and close sensor */
-	g_main_context_push_thread_default (priv->context);
-	ctx.loop = g_main_loop_new (priv->context, TRUE);
+	ctx.loop = g_main_loop_new (NULL, FALSE);
 
 	ssc_sensor_compass_close (self, cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	success = ssc_sensor_compass_close_finish (self, ctx.result, error);
 
-	g_main_context_pop_thread_default (priv->context);
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
 
@@ -325,35 +269,17 @@ ssc_sensor_compass_open (SSCSensorCompass *self, GCancellable *cancellable, GAsy
 gboolean
 ssc_sensor_compass_open_sync (SSCSensorCompass *self, GCancellable *cancellable, GError **error)
 {
-	SSCSensorCompassPrivate *priv = NULL;
 	SyncContext ctx;
 	gboolean success = FALSE;
 
-	priv = ssc_sensor_compass_get_instance_private (self);
-
-	/* Open sensor in our context */
-	g_main_context_push_thread_default (priv->context);
-	ctx.loop = g_main_loop_new (priv->context, TRUE);
+	ctx.loop = g_main_loop_new (NULL, FALSE);
 
 	ssc_sensor_compass_open (self, cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	success = ssc_sensor_compass_open_finish (self, ctx.result, error);
 
-	/* Start report thread to watch for incoming measurements over QMI indications */
-	g_mutex_lock (&compass_running_mutex);
-	compass_thread_running = FALSE;
-	g_mutex_unlock (&compass_running_mutex);
-	priv->thread = g_thread_new ("report-receiver-compass", report_receiver_thread, self);
-
-	g_main_context_pop_thread_default (priv->context);
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
-
-	/* Wait until report receiving thread is running */
-	g_mutex_lock (&compass_running_mutex);
-	while (!compass_thread_running)
-		g_cond_wait (&compass_running_cond, &compass_running_mutex);
-	g_mutex_unlock (&compass_running_mutex);
 
 	return success;
 }
@@ -411,30 +337,16 @@ SSCSensorCompass *
 ssc_sensor_compass_new_sync (GCancellable *cancellable, GError **error)
 {
 	SSCSensorCompass *self = NULL;
-	SSCSensorCompassPrivate *priv = NULL;
 	SyncContext ctx;
-	GMainContext *context = NULL;
 
-	/* Initiate context for this sensor in library */
-	context = g_main_context_new ();
-	g_main_context_push_thread_default (context);
-	ctx.loop = g_main_loop_new (context, TRUE);
+	ctx.loop = g_main_loop_new (NULL, FALSE);
 
-	/* Create sensor */
 	ssc_sensor_compass_new (cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	self = ssc_sensor_compass_new_finish (ctx.result, error);
 
-	g_main_context_pop_thread_default (context);
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
-
-	if (!self)
-		return NULL;
-
-	/* Keep context for future calls to avoid interference with default context */
-	priv = ssc_sensor_compass_get_instance_private (self);
-	priv->context = g_main_context_ref (context);
 
 	return self;
 }

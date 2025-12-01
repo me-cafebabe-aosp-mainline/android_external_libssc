@@ -27,15 +27,9 @@ enum {
 	N_SIGNALS
 };
 static guint signals[N_SIGNALS];
-static GMutex accelerometer_running_mutex;
-static GCond accelerometer_running_cond;
-static gboolean accelerometer_thread_running;
 
 typedef struct _SSCSensorAccelerometerPrivate {
 	guint report_id;
-	GMainContext *context;
-	GThread *thread;
-	GMainLoop *loop;
 } SSCSensorAccelerometerPrivate;
 
 G_DEFINE_TYPE_WITH_CODE (SSCSensorAccelerometer, ssc_sensor_accelerometer, SSC_TYPE_SENSOR,
@@ -69,30 +63,6 @@ signal_context_free (SignalContext *ctx)
 }
 
 /*****************************************************************************/
-
-static gpointer
-report_receiver_thread (gpointer user_data)
-{
-	SSCSensorAccelerometer *self = SSC_SENSOR_ACCELEROMETER (user_data);
-	SSCSensorAccelerometerPrivate *priv = NULL;
-
-	priv = ssc_sensor_accelerometer_get_instance_private (self);
-	g_warn_if_fail (priv->context);
-
-	/*
-	 * Create main loop with context to receive QMI indications.
-	 * The loop will be quited in close_sync when the thread should exit.
-	 * Once quited, disconnect signal handler.
-	 */
-	g_main_context_push_thread_default (priv->context);
-
-	priv->loop = g_main_loop_new (priv->context, TRUE);
-	g_main_loop_run (priv->loop);
-
-	g_main_context_pop_thread_default (priv->context);
-
-	return NULL;
-}
 
 static gboolean
 emit_signal (gpointer user_data) {
@@ -143,12 +113,6 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		}
 
 		ssc_accelerometer_response__free_unpacked (msg, NULL);
-
-		/* Declare that the report receiving thread is running */
-		g_mutex_lock (&accelerometer_running_mutex);
-		accelerometer_thread_running = TRUE;
-		g_cond_signal (&accelerometer_running_cond);
-		g_mutex_unlock (&accelerometer_running_mutex);
 	}
 }
 
@@ -204,35 +168,15 @@ ssc_sensor_accelerometer_close (SSCSensorAccelerometer *self, GCancellable *canc
 gboolean
 ssc_sensor_accelerometer_close_sync (SSCSensorAccelerometer *self, GCancellable *cancellable, GError **error)
 {
-	SSCSensorAccelerometerPrivate *priv = NULL;
 	gboolean success = FALSE;
 	SyncContext ctx;
 
-	priv = ssc_sensor_accelerometer_get_instance_private (self);
-
-	/*
-	 * Stop report context thread before re-acquiring our context.
-	 * Test if loop and thread was initialized since opening and closing
-	 * the sensor quickly may cause a race condition where the thread
-	 * did not run yet.
-	 */
-	if (priv->loop) {
-		g_main_loop_quit (priv->loop);
-		g_main_loop_unref (priv->loop);
-	}
-
-	if (priv->thread)
-		g_thread_join (priv->thread);
-
-	/* Take over context and close sensor */
-	g_main_context_push_thread_default (priv->context);
-	ctx.loop = g_main_loop_new (priv->context, TRUE);
+	ctx.loop = g_main_loop_new (NULL, FALSE);
 
 	ssc_sensor_accelerometer_close (self, cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	success = ssc_sensor_accelerometer_close_finish (self, ctx.result, error);
 
-	g_main_context_pop_thread_default (priv->context);
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
 
@@ -293,35 +237,17 @@ ssc_sensor_accelerometer_open (SSCSensorAccelerometer *self, GCancellable *cance
 gboolean
 ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *cancellable, GError **error)
 {
-	SSCSensorAccelerometerPrivate *priv = NULL;
 	SyncContext ctx;
 	gboolean success = FALSE;
 
-	priv = ssc_sensor_accelerometer_get_instance_private (self);
-
-	/* Open sensor in our context */
-	g_main_context_push_thread_default (priv->context);
-	ctx.loop = g_main_loop_new (priv->context, TRUE);
+	ctx.loop = g_main_loop_new (NULL, FALSE);
 
 	ssc_sensor_accelerometer_open (self, cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	success = ssc_sensor_accelerometer_open_finish (self, ctx.result, error);
 
-	/* Start report thread to watch for incoming measurements over QMI indications */
-	g_mutex_lock (&accelerometer_running_mutex);
-	accelerometer_thread_running = FALSE;
-	g_mutex_unlock (&accelerometer_running_mutex);
-	priv->thread = g_thread_new ("report-receiver-accelerometer", report_receiver_thread, self);
-
-	g_main_context_pop_thread_default (priv->context);
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
-
-	/* Wait until report receiving thread is running */
-	g_mutex_lock (&accelerometer_running_mutex);
-	while (!accelerometer_thread_running)
-		g_cond_wait (&accelerometer_running_cond, &accelerometer_running_mutex);
-	g_mutex_unlock (&accelerometer_running_mutex);
 
 	return success;
 }
@@ -379,30 +305,17 @@ SSCSensorAccelerometer *
 ssc_sensor_accelerometer_new_sync (GCancellable *cancellable, GError **error)
 {
 	SSCSensorAccelerometer *self = NULL;
-	SSCSensorAccelerometerPrivate *priv = NULL;
 	SyncContext ctx;
-	GMainContext *context = NULL;
 
-	/* Initiate context for this sensor in library */
-	context = g_main_context_new ();
-	g_main_context_push_thread_default (context);
-	ctx.loop = g_main_loop_new (context, TRUE);
+	ctx.loop = g_main_loop_new (NULL, FALSE);
 
 	/* Create sensor */
 	ssc_sensor_accelerometer_new (cancellable, sync_cb, &ctx);
 	g_main_loop_run (ctx.loop);
 	self = ssc_sensor_accelerometer_new_finish (ctx.result, error);
 
-	g_main_context_pop_thread_default (context);
 	g_main_loop_unref (ctx.loop);
 	g_object_unref (ctx.result);
-
-	if (!self)
-		return NULL;
-
-	/* Keep context for future calls to avoid interference with default context */
-	priv = ssc_sensor_accelerometer_get_instance_private (self);
-	priv->context = g_main_context_ref (context);
 
 	return self;
 }
