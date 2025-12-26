@@ -33,7 +33,7 @@ sys.path.append(os.path.abspath('../_build/data'))
 
 from ssc import *
 
-VERSION = '0.2.2'
+VERSION = '0.3.0'
 
 SSC_SERVICE_ID = 0x190
 SSC_SERVICE_VERSION = 1

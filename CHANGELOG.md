@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.0] - 2025-12-26
+
+### Added
+- Gyroscope sensor support.
+- Vala bindings generation.
+- GObject introspection generation.
+
+### Fixed
+- Thread symbol leaking into global scope.
+
+### Changed
+- Drop reporting threads as these are not necessary.
+
 ## [0.2.2] - 2025-02-21
 
 ### Fixed
