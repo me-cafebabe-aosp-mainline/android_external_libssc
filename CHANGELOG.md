@@ -126,3 +126,4 @@ Initial release.
 [0.2.0]: https://codeberg.org/DylanVanAssche/libssc/compare/0.1.6...v0.2.0
 [0.2.1]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.0...v0.2.1
 [0.2.2]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.1...v0.2.2
+[0.3.0]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.2...v0.3.0
