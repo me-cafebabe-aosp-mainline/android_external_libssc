@@ -342,7 +342,7 @@ device_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	/* Indications are expected as they report all sensor data values */
 	open_flags |= QMI_DEVICE_OPEN_FLAGS_AUTO;
 	open_flags |= QMI_DEVICE_OPEN_FLAGS_EXPECT_INDICATIONS;
-	
+
 	g_debug ("QMI device ready");
 
 	/* QMI device created, open device */
@@ -415,7 +415,7 @@ ssc_client_dispose (GObject *object)
 {
 	QmiDeviceReleaseClientFlags flags = QMI_DEVICE_RELEASE_CLIENT_FLAGS_NONE;
 	SSCClientPrivate *priv = NULL;
-	GMainContext *context = NULL;
+	g_autoptr (GMainContext) context = NULL;
 	GError *error = NULL;
 	SyncContext ctx;
 
