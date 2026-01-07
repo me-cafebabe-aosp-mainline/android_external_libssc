@@ -1289,3 +1289,7 @@ root:
 ```
 
 
+### Mount matrix
+
+Sensor attribute (ID=20) specifies the mount matrix of the sensor. This matches the `platform` key in the JSON configuration files which are stored in the device firmware packages.
+This matrix is a 3x4 matrix of which we use only the first 3 columns (3x3). Once specified, libssc can apply the mount matrix immediately.
