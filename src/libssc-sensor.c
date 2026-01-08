@@ -759,9 +759,8 @@ sensor_dispose (GObject *object)
 
 	if (priv->data_type)
 		g_free (priv->data_type);
-	
-	if (priv->client)
-		g_clear_object (&priv->client);
+
+	g_clear_object (&priv->client);
 }
 
 static void
