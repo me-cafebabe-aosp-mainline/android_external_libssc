@@ -60,13 +60,16 @@ cli_sources = files(
 
 so_version = '1'
 
-libssc = library(
+libssc = shared_library(
   'ssc',
   sources: sources,
   include_directories: includes,
   dependencies: deps,
   install: true,
   soversion: so_version,
+  link_args: [
+    '-Wl,--version-script=' + map_source[0].full_path()
+  ],
 )
 
 ssccli = executable(

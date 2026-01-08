@@ -33,7 +33,7 @@ G_DECLARE_FINAL_TYPE (SSCSensorCompass, ssc_sensor_compass, SSC, SENSOR_COMPASS,
 
 void		 	 ssc_sensor_compass_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 SSCSensorCompass 	*ssc_sensor_compass_new_finish (GAsyncResult *result, GError **error);
-SSCSensorCompass      *ssc_sensor_compass_new_sync (GCancellable *cancellable, GError **error);
+SSCSensorCompass	*ssc_sensor_compass_new_sync (GCancellable *cancellable, GError **error);
 void			 ssc_sensor_compass_open (SSCSensorCompass *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_compass_open_finish (SSCSensorCompass *self, GAsyncResult *result, GError **error);
 gboolean                 ssc_sensor_compass_open_sync (SSCSensorCompass *self, GCancellable *cancellable, GError **error);

@@ -95,6 +95,7 @@ src_inc = include_directories('./src')
 includes = [top_inc, data_inc, src_inc]
 sources = files()
 headers = files()
+map_source = files('libssc.map')
 
 subdir('data')
 subdir('src')

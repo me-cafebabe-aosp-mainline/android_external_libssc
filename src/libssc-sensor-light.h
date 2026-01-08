@@ -31,14 +31,14 @@ typedef struct _SSCSensorLight {
 
 G_DECLARE_FINAL_TYPE (SSCSensorLight, ssc_sensor_light, SSC, SENSOR_LIGHT, SSCSensor);
 
-void		 	 ssc_sensor_light_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
-SSCSensorLight 	*ssc_sensor_light_new_finish (GAsyncResult *result, GError **error);
-SSCSensorLight      *ssc_sensor_light_new_sync (GCancellable *cancellable, GError **error);
-void			 ssc_sensor_light_open (SSCSensorLight *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
-gboolean		 ssc_sensor_light_open_finish (SSCSensorLight *self, GAsyncResult *result, GError **error);
-gboolean                 ssc_sensor_light_open_sync (SSCSensorLight *self, GCancellable *cancellable, GError **error);
-void			 ssc_sensor_light_close (SSCSensorLight *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
-gboolean		 ssc_sensor_light_close_finish (SSCSensorLight *self, GAsyncResult *result, GError **error);
-gboolean                 ssc_sensor_light_close_sync (SSCSensorLight *self, GCancellable *cancellable, GError **error);
+void		 ssc_sensor_light_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+SSCSensorLight	*ssc_sensor_light_new_finish (GAsyncResult *result, GError **error);
+SSCSensorLight	*ssc_sensor_light_new_sync (GCancellable *cancellable, GError **error);
+void		 ssc_sensor_light_open (SSCSensorLight *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+gboolean	 ssc_sensor_light_open_finish (SSCSensorLight *self, GAsyncResult *result, GError **error);
+gboolean	 ssc_sensor_light_open_sync (SSCSensorLight *self, GCancellable *cancellable, GError **error);
+void		 ssc_sensor_light_close (SSCSensorLight *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
+gboolean	 ssc_sensor_light_close_finish (SSCSensorLight *self, GAsyncResult *result, GError **error);
+gboolean         ssc_sensor_light_close_sync (SSCSensorLight *self, GCancellable *cancellable, GError **error);
 
 #endif /* _LIBSSC_SENSOR_LIGHT_H_ */

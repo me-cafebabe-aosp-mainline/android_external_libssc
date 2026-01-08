@@ -32,8 +32,8 @@ typedef struct _SSCSensorAccelerometer {
 G_DECLARE_FINAL_TYPE (SSCSensorAccelerometer, ssc_sensor_accelerometer, SSC, SENSOR_ACCELEROMETER, SSCSensor);
 
 void		 	 ssc_sensor_accelerometer_new (GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
-SSCSensorAccelerometer 	*ssc_sensor_accelerometer_new_finish (GAsyncResult *result, GError **error);
-SSCSensorAccelerometer      *ssc_sensor_accelerometer_new_sync (GCancellable *cancellable, GError **error);
+SSCSensorAccelerometer	*ssc_sensor_accelerometer_new_finish (GAsyncResult *result, GError **error);
+SSCSensorAccelerometer	*ssc_sensor_accelerometer_new_sync (GCancellable *cancellable, GError **error);
 void			 ssc_sensor_accelerometer_open (SSCSensorAccelerometer *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_accelerometer_open_finish (SSCSensorAccelerometer *self, GAsyncResult *result, GError **error);
 gboolean                 ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *cancellable, GError **error);

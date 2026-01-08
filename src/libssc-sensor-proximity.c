@@ -21,6 +21,7 @@
 #include "libssc-client-private.h"
 #include "libssc-common-private.h"
 #include "libssc-sensor-proximity.h"
+#include "libssc-sensor-proximity-private.h"
 
 #define SSC_SENSOR_PROXIMITY_NEAR	1
 #define SSC_SENSOR_PROXIMITY_FAR	0
