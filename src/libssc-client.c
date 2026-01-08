@@ -400,7 +400,7 @@ bus_new_ready (GObject *source, GAsyncResult *res, gpointer user_data)
 	/* QRTR node ready, create QMI device */
 	qmi_device_new_from_node (node,
 		g_task_get_cancellable (task),
-		(GAsyncReadyCallback)device_new_ready,
+		device_new_ready,
 		task);
 }
 
@@ -477,7 +477,7 @@ initable_init_async (GAsyncInitable *initable, int io_priority, GCancellable *ca
 		/* Open right node on QRTR bus */
 		qrtr_bus_new (1000, /* ms */
 			      NULL,
-			      (GAsyncReadyCallback)bus_new_ready,
+			      bus_new_ready,
 			      task);
 		return;
 	}
