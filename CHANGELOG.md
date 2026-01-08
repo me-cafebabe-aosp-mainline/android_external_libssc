@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- Cleaned up white space.
+- Fixed 2 memory leaks caused.
+- Properly close QMI client.
+- Do not initialize variables if not needed.
+- Do not check for `NULL` when not needed.
+
 ## [0.3.0] - 2025-12-26
 
 ### Added
