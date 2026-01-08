@@ -175,7 +175,7 @@ sensor_open_ready (SSCClient *self, GAsyncResult *result, gpointer user_data)
 	g_debug ("Sensor enable request sent successfully");
 }
 
-static void 
+static void
 sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data)
 {
 	SSCSensorPrivate *priv = NULL;
@@ -213,14 +213,14 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 			g_object_unref (task);
 			return;
 		}
-		
+
 		msg.sample_rate = priv->sample_rate;
 		buf = g_array_new (FALSE, FALSE, 1);
 		g_array_set_size (buf, ssc_enable_config_request__get_packed_size (&msg));
 		ssc_enable_config_request__pack (&msg, (unsigned char*) buf->data);
-		
+
 		msg_id = SSC_MSG_REQUEST_ENABLE_REPORT_CONTINUOUS;
-	/* 
+	/*
 	 * Sensors which support on-change do not need any configuration,
 	 * only a different message ID to enable them.
 	 */
@@ -395,7 +395,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 		       		break;
 		       }
 		}
-		
+
 
 		attributes_populated = TRUE;
 		g_debug ("Attributes populated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
@@ -414,10 +414,10 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			g_clear_object (&ctx->task);
 			g_slice_free (ReportReceivedContext, ctx);
 		}
-		
+
 		ssc_attr_response__free_unpacked (attr_msg, NULL);
 		return;
-	/* 
+	/*
 	 * Sensor is enabled when a configuration update is received.
 	 * Since some sensors do not emit a configuration update,
 	 * either a measurement or configuration update completes the enabling task, whatever comes first.
@@ -429,7 +429,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			g_warning ("Failed to unpack SUID Configuration message");
 			return;
 		}
-		
+
 		g_debug ("Configuration updated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
 		g_debug ("  mode: %s", config_msg->mode ? config_msg->mode : "UNKNOWN");
 		g_debug ("  sample-rate: %f Hz", config_msg->has_sample_rate ? config_msg->sample_rate : 0.0);
@@ -439,13 +439,13 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			g_signal_handler_disconnect (self, priv->report_id);
 			priv->report_id = 0;
 			g_task_return_boolean (ctx->task, TRUE);
-			g_clear_object (&ctx->task);	
+			g_clear_object (&ctx->task);
 			g_slice_free (ReportReceivedContext, ctx);
 		}
 
 		ssc_config_response__free_unpacked (config_msg, NULL);
 		return;
-	/* 
+	/*
 	 * Some sensors do not emit a configuration update when they are enabled such as the Rotation Vector sensor.
 	 * Assume they are enabled when a measurement is received.
 	 * Apply this for any sensor to cover new sensors in the future as well.
@@ -458,7 +458,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			g_signal_handler_disconnect (self, priv->report_id);
 			priv->report_id = 0;
 			g_task_return_boolean (ctx->task, TRUE);
-			g_clear_object (&ctx->task);	
+			g_clear_object (&ctx->task);
 			g_slice_free (ReportReceivedContext, ctx);
 		}
 	}
@@ -558,7 +558,7 @@ discover (SSCSensor *self, GTask *task)
 			 buf,
 			 g_task_get_cancellable (task),
 			 (GAsyncReadyCallback)discovery_ready,
-			 task); 
+			 task);
 }
 
 /*****************************************************************************/
@@ -799,7 +799,7 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 	g_object_class_install_property (object_class, PROP_UID_HIGH, properties[PROP_UID_HIGH]);
 
-	properties[PROP_NAME] = 
+	properties[PROP_NAME] =
 		g_param_spec_string (SSC_SENSOR_NAME,
 				     "Sensor driver name",
 				     "Name of the sensor driver.",
@@ -807,7 +807,7 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     G_PARAM_READABLE);
 	g_object_class_install_property (object_class, PROP_NAME, properties[PROP_NAME]);
 
-	properties[PROP_VENDOR] = 
+	properties[PROP_VENDOR] =
 		g_param_spec_string (SSC_SENSOR_VENDOR,
 				     "Sensor vendor",
 				     "Name of the vendor of the sensor.",
@@ -815,7 +815,7 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     G_PARAM_READABLE);
 	g_object_class_install_property (object_class, PROP_VENDOR, properties[PROP_VENDOR]);
 
-	properties[PROP_DATA_TYPE] = 
+	properties[PROP_DATA_TYPE] =
 		g_param_spec_string (SSC_SENSOR_DATA_TYPE,
 				     "Data type",
 				     "The data type supported by the sensor.",
@@ -823,7 +823,7 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 	g_object_class_install_property (object_class, PROP_DATA_TYPE, properties[PROP_DATA_TYPE]);
 
-	properties[PROP_STREAM_TYPE] = 
+	properties[PROP_STREAM_TYPE] =
 		g_param_spec_string (SSC_SENSOR_STREAM_TYPE,
 				     "Stream type",
 				     "The stream type supported by the sensor.",
@@ -831,7 +831,7 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     G_PARAM_READABLE);
 	g_object_class_install_property (object_class, PROP_STREAM_TYPE, properties[PROP_STREAM_TYPE]);
 
-	properties[PROP_AVAILABLE] = 
+	properties[PROP_AVAILABLE] =
 		g_param_spec_string (SSC_SENSOR_AVAILABLE,
 				     "Availability",
 				     "If the sensor is available for measurements.",
@@ -839,7 +839,7 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 				     G_PARAM_READABLE);
 	g_object_class_install_property (object_class, PROP_AVAILABLE, properties[PROP_AVAILABLE]);
 
-	properties[PROP_SAMPLE_RATE] = 
+	properties[PROP_SAMPLE_RATE] =
 		g_param_spec_string (SSC_SENSOR_SAMPLE_RATE,
 				     "Sample rate",
 				     "The sample rate in Hz supported by the sensor.",
