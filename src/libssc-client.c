@@ -463,6 +463,8 @@ ssc_client_dispose (GObject *object)
 
 	g_clear_object (&priv->qmi_client_ssc);
 	g_clear_object (&priv->device);
+	g_clear_object (&priv->bus);
+
 	G_OBJECT_CLASS (ssc_client_parent_class)->dispose (object);
 
 	/* Close context */
