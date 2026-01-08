@@ -23,6 +23,7 @@ import sys
 import time
 import errno
 import signal
+import socket
 import argparse
 import sysconfig
 from multiprocessing import Process
@@ -44,6 +45,18 @@ QRTR_REQUEST = 0x6
 
 ERROR_QRTR_PORT_UNAVAILABLE = 1
 ERROR_QRTR_SERVER_FAILURE = 2
+ERROR_SKIP_TEST = 77
+
+def supports_af_qipcrtr():
+    try:
+        socket.socket(socket.AF_QIPCRTR, socket.SOCK_DGRAM, 0)
+    except OSError as e:
+        if e.errno == errno.EPROTONOSUPPORT or e.errno == errno.EAFNOSUPPORT:
+            print('❌ QIPCRTR protocol not supported by the kernel, check modules')
+            return False
+        raise e
+
+    return True
 
 def signal_handler(sig, frame):
     # Clear message buffer
@@ -79,11 +92,14 @@ class SSCMockingServer():
           # Local git submodule
           os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'),
           # Installed in OS (Alpine)
-          '/usr/lib/libqrtr.so.1.1',
+          '/usr/lib/libqrtr.so.1',
           # Installed in OS (Debian)
           f'/usr/lib/{multiarch}/libqrtr.so.1'
         ]:
           try:
+            if not os.path.exists(path):
+                continue
+            print(f'ℹ️  Using QRTR library from {path}')
             self._qrtr = CDLL(path)
             break
           except OSError as e:
@@ -287,4 +303,7 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, signal_handler)
 
+    if not supports_af_qipcrtr():
+        # Let Meson skip tests
+        sys.exit(ERROR_SKIP_TEST)
     server = SSCMockingServer(args.port, args.verbose)

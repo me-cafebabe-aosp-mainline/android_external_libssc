@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move Xiaomi Davinci struct to private header.
 - Add symbol list to avoid exposing more symbols.
 - Deprecation warning of protobuf-c tool.
+- Do not run tests if `Q_IPCRTR protocol` is not available.
 
 ## [0.3.0] - 2025-12-26
 
