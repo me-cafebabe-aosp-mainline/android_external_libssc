@@ -858,17 +858,6 @@ ssc_sensor_class_init (SSCSensorClass *klass)
 static void
 ssc_sensor_init (SSCSensor *self)
 {
-	SSCSensorPrivate *priv = NULL;
-
-	priv = ssc_sensor_get_instance_private (self);
-
-	priv->name = NULL;
-	priv->vendor = NULL;
-	priv->data_type = NULL;
-	priv->sample_rate = 0.0;
-	priv->available = false;
-	priv->stream_type = 0;
-	priv->client = NULL;
 }
 
 SSCSensor *
