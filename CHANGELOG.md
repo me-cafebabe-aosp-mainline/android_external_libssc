@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Properly close QMI client.
 - Do not initialize variables if not needed.
 - Do not check for `NULL` when not needed.
+- Move Xiaomi Davinci struct to private header.
 
 ## [0.3.0] - 2025-12-26
 
