@@ -448,6 +448,18 @@ ssc_client_dispose (GObject *object)
 	/* QMI client released, check result */
 	if (!qmi_device_release_client_finish (priv->device, ctx.result, &error))
 		g_warning ("Could not release SSC QMI client: %s\n", error->message);
+	g_object_unref (ctx.result);
+
+	g_debug ("Closing SSC QMI client");
+	qmi_device_close_async (priv->device,
+				10,
+				NULL,
+				sync_cb,
+				&ctx);
+	g_main_loop_run (ctx.loop);
+	if (!qmi_device_close_finish (priv->device, ctx.result, &error))
+		g_warning ("Could not close SSC QMI client: %s\n", error->message);
+	g_object_unref (ctx.result);
 
 	g_clear_object (&priv->qmi_client_ssc);
 	g_clear_object (&priv->device);
@@ -456,7 +468,6 @@ ssc_client_dispose (GObject *object)
 	/* Close context */
 	g_main_context_pop_thread_default (context);
 	g_main_loop_unref (ctx.loop);
-	g_object_unref (ctx.result);
 }
 
 static void
