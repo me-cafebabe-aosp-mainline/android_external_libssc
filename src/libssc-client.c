@@ -415,7 +415,7 @@ ssc_client_dispose (GObject *object)
 {
 	QmiDeviceReleaseClientFlags flags = QMI_DEVICE_RELEASE_CLIENT_FLAGS_NONE;
 	SSCClientPrivate *priv = NULL;
-	g_autoptr (GMainContext) context = NULL;
+	g_autoptr (GMainContext) context = g_main_context_new ();
 	GError *error = NULL;
 	SyncContext ctx;
 
@@ -427,7 +427,6 @@ ssc_client_dispose (GObject *object)
 	}
 
 	/* Sync context */
-	context = g_main_context_new ();
 	g_main_context_push_thread_default (context);
 	ctx.loop = g_main_loop_new (context, TRUE);
 	ctx.object = object;
