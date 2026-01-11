@@ -1,3 +1,9 @@
+add_test_setup(
+  'mocking',
+  exe_wrapper: '../mocking/ssc-server',
+  is_default: true
+)
+
 test(
   'tests-general',
   executable('tests-general', 'general.c', link_with: libssc, dependencies: deps),
@@ -5,7 +11,9 @@ test(
     'G_TEST_SRCDIR=@0@'.format(meson.current_source_dir()),
     'G_TEST_BUILDDIR=@0@'.format(meson.current_build_dir()),
   ],
-  protocol: 'tap',
+  protocol: 'exitcode',
+  suite: 'service',
+  is_parallel: false,
 )
 
 test(
@@ -15,5 +23,7 @@ test(
     'G_TEST_SRCDIR=@0@'.format(meson.current_source_dir()),
     'G_TEST_BUILDDIR=@0@'.format(meson.current_build_dir()),
   ],
-  protocol: 'tap',
+  protocol: 'exitcode',
+  suite: 'no-service',
+  is_parallel: false,
 )

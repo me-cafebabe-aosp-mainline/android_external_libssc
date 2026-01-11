@@ -45,6 +45,7 @@ SSC_SERVICE_INSTANCE = 0
 QMI_REQUEST = 0x0
 QRTR_REQUEST = 0x6
 
+ERROR_OK = 0
 ERROR_QRTR_PORT_UNAVAILABLE = 1
 ERROR_QRTR_SERVER_FAILURE = 2
 ERROR_SKIP_TEST = 77
@@ -128,6 +129,7 @@ class SSCMockingServer():
         if self._verbose:
             print('ℹ️  Verbose mode enabled')
 
+    def start(self):
         self._process()
 
     def _debug(self, msg: str):
@@ -294,18 +296,43 @@ class SSCMockingServer():
 
         print('👋 Bye!')
 
+def server_start(server):
+    server.start()
+
+def server_stop(server):
+    del server
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='ssc-server',
                                      description='SSC QMI service server mocking',
                                      epilog='GPLv3 license, copyright (c) by libssc authors (2024)')
+    parser.add_argument('test', default=None, nargs='?')
     parser.add_argument('-p', '--port', type=int, default=0)
     parser.add_argument('--verbose', action='store_true', default=False)
     args = parser.parse_args()
 
     signal.signal(signal.SIGINT, signal_handler)
 
+    # Let Meson skip tests if QIPCRTR protocol is unavailable
     if not supports_af_qipcrtr():
-        # Let Meson skip tests
         sys.exit(ERROR_SKIP_TEST)
-    server = SSCMockingServer(args.port, args.verbose)
+
+    # Run test if provided
+    if args.test is not None:
+        # No-service test assumes no SSC service, do not start server
+        if 'no-service' not in args.test:
+            server = SSCMockingServer(args.port, args.verbose)
+            p = Process(target=server_start, args=(server,))
+            p.start()
+
+        code = ERROR_OK
+        code = os.system(args.test)
+        print(f'ℹ️  Test {args.test} finished with exit code {code}')
+
+        if 'no-service' not in args.test:
+            p.terminate()
+            p.join()
+
+        sys.exit(code)
+    else:
+        server_start()
