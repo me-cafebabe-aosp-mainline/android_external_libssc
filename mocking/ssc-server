@@ -30,7 +30,9 @@ from multiprocessing import Process
 from ctypes import CDLL, c_int, byref, c_char_p, addressof, create_string_buffer, Structure
 
 # Import build path for running unittests
-sys.path.append(os.path.abspath('../_build/data'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../output/data'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../_build/data'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../data'))
 
 from ssc import *
 
