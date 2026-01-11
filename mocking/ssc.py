@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+import os
 import sys
 import time
 import json
@@ -97,7 +98,7 @@ class SSC():
         """
         data = []
 
-        for sensor in glob('data/sensor-*.json'):
+        for sensor in glob(os.path.join(os.path.dirname(__file__), 'data', 'sensor-*.json')):
             with open(sensor) as f:
                 data.append(json.load(f))
 
