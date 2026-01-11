@@ -62,20 +62,7 @@ otherwise access to the QRTR bus is prohibited.
 ## Tests
 
 Libssc has tests with and without the SSC mocking server to verify also the behavior
-of libssc when the QMI service is not present. It is advisable to run them separate:
-
-**Without mocking server**
-
-```
-meson test tests-no-service
-```
-
-**With mocking server**
-
-```
-./mocking/ssc-server
-meson test tests-general
-```
+of libssc when the QMI service is not present.
 
 ## License
 
