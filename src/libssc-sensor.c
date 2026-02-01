@@ -404,6 +404,18 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 							priv->mount_matrix[j/3][j%3] = attr_msg->attr[i]->value_array->v[j]->f;
 						}
 					}
+
+					/* Fallback to identity matrix in case matrix is all 0 */
+					gint sum = 0;
+					for (gsize k = 0; k < 9; k++)
+						sum += priv->mount_matrix[k/3][k%3];
+
+					if (sum == 0) {
+						priv->mount_matrix[0][0] = 1.0;
+						priv->mount_matrix[1][1] = 1.0;
+						priv->mount_matrix[2][2] = 1.0;
+						g_warning ("Mount matrix provided by firmware is all 0, falling back to identity matrix!");
+					}
 					break;
 		       }
 		}
