@@ -26,7 +26,7 @@ project(
     'c_std=gnu99',
     'warning_level=2',
   ],
-  meson_version: '>= 0.58.0',
+  meson_version: '>= 1.4.0',
 )
 
 libssc_name = meson.project_name()
