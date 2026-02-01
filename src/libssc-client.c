@@ -99,7 +99,7 @@ handle_report (SSCClient *self, GArray *protobuf)
 		g_array_set_size (buf, body->msg.len);
 		memcpy (buf->data, (char *) body->msg.data, body->msg.len);
 
-		g_debug ("Message %" G_GUINT32_FORMAT " for sensor %016lX %016lX", body->msg_id, msg->uid->high, msg->uid->low);
+		g_debug ("Message %" G_GUINT32_FORMAT " for sensor %" G_GUINT64_FORMAT " %" G_GUINT64_FORMAT, body->msg_id, msg->uid->high, msg->uid->low);
 
 		/*
 		 * Emit a GSignal on which sensor drivers can subscribe to

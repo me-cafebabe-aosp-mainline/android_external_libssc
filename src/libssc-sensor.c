@@ -124,7 +124,7 @@ sensor_close (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback ca
 	task = g_task_new (self, cancellable, callback, user_data);
 	priv = ssc_sensor_get_instance_private (self);
 
-	g_info ("Disabling sensor (%016lX %016lX)", priv->uid_high, priv->uid_low);
+	g_info ("Disabling sensor (%" G_GUINT64_FORMAT " %" G_GUINT64_FORMAT ")", priv->uid_high, priv->uid_low);
 
 	ssc_client_send (priv->client,
 			 priv->uid_high,
@@ -197,7 +197,7 @@ sensor_open (SSCSensor *self, GCancellable *cancellable, GAsyncReadyCallback cal
 		return;
 	}
 
-	g_info ("Enabling sensor (%016lX %016lX) in '%s' mode", priv->uid_high, priv->uid_low, priv->stream_type == SSC_STREAM_TYPE_CONTINUOUS? "continuous" : "on-change");
+	g_info ("Enabling sensor (%" G_GUINT64_FORMAT " %" G_GUINT64_FORMAT ") in '%s' mode", priv->uid_high, priv->uid_low, priv->stream_type == SSC_STREAM_TYPE_CONTINUOUS? "continuous" : "on-change");
 
 	/*
 	 * Sensors which support continuous streaming need a sample rate,
@@ -335,7 +335,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			priv->uid_high = suid_msg->uid[0]->high;
 			priv->uid_low = suid_msg->uid[0]->low;
 
-			g_debug ("Discovered '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
+			g_debug ("Discovered '%s' sensor (%" G_GUINT64_FORMAT " %" G_GUINT64_FORMAT ")", priv->data_type, priv->uid_high, priv->uid_low);
 			ssc_suid_response__free_unpacked (suid_msg, NULL);
 
 			/* Sensor discovered, populate attributes */
@@ -398,7 +398,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 
 
 		attributes_populated = TRUE;
-		g_debug ("Attributes populated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
+		g_debug ("Attributes populated for '%s' sensor (%" G_GUINT64_FORMAT " %" G_GUINT64_FORMAT ")", priv->data_type, priv->uid_high, priv->uid_low);
 		g_debug ("  name: %s", priv->name);
 		g_debug ("  vendor: %s", priv->vendor);
 		g_debug ("  data-type: %s", priv->data_type);
@@ -430,7 +430,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			return;
 		}
 
-		g_debug ("Configuration updated for '%s' sensor (%016lX %016lX)", priv->data_type, priv->uid_high, priv->uid_low);
+		g_debug ("Configuration updated for '%s' sensor (%" G_GUINT64_FORMAT "%" G_GUINT64_FORMAT ")", priv->data_type, priv->uid_high, priv->uid_low);
 		g_debug ("  mode: %s", config_msg->mode ? config_msg->mode : "UNKNOWN");
 		g_debug ("  sample-rate: %f Hz", config_msg->has_sample_rate ? config_msg->sample_rate : 0.0);
 
@@ -452,7 +452,7 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 	 * Either a configuration update or measurement will complete the task and disconnect the listener.
 	 */
 	} else if (uid_high == priv->uid_high && uid_low == priv->uid_low && (msg_id == SSC_MSG_REPORT_MEASUREMENT || msg_id == SSC_MSG_REPORT_MEASUREMENT_PROXIMITY)) {
-		g_debug ("Measurement received for '%s' sensor (%016lX %016lX), assuming enabled", priv->data_type, priv->uid_high, priv->uid_low);
+		g_debug ("Measurement received for '%s' sensor (%" G_GUINT64_FORMAT " %" G_GUINT64_FORMAT "), assuming enabled", priv->data_type, priv->uid_high, priv->uid_low);
 
 		if (ctx->task) {
 			g_signal_handler_disconnect (self, priv->report_id);
