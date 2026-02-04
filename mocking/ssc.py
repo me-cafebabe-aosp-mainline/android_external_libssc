@@ -350,14 +350,14 @@ class SSC():
                             elif type(v) is bool:
                                 values.append(SscCommon.SscAttrValue(b=v))
                             else:
-                                raise NotImplementedError('Attribute value type in list unsupported')
+                                raise NotImplementedError(f'Attribute value type in list unsupported: {v} ({type(v)})')
                         attributes.append((attr_id, values))
                     else:
-                        raise NotImplementedError('Attribute value type unsupported')
+                        raise NotImplementedError(f'Attribute value type unsupported: {attr_value} ({type(attr_value)})')
                 break
 
         if not attributes:
-            raise NotImplementedError('Unable to match sensor {uid_high},{uid_low} with attributes')
+            raise NotImplementedError(f'Unable to match sensor {uid_high},{uid_low} with attributes')
 
         # Generate attributes response 
         attr_response = SscCommon.SscAttrResponse()

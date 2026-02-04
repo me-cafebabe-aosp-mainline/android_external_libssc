@@ -327,7 +327,7 @@ if __name__ == '__main__':
 
         code = ERROR_OK
         code = os.system(args.test)
-        print(f'ℹ️  Test {args.test} finished with exit code {code}')
+        print(f'❌ Test {args.test} finished with exit code {code}')
 
         if 'no-service' not in args.test:
             p.terminate()
