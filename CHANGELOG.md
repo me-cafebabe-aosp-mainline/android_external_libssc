@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not run tests if `Q_IPCRTR protocol` is not available.
 - Skip tests on ARMv7/armhf due to floating point problems with protobuf-c decoding.
 - Fix printf formats for sensor UIDs.
+- ABI of compass signal.
 
 ## [0.3.0] - 2025-12-26
 
