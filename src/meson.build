@@ -58,7 +58,7 @@ cli_sources = files(
   'libssc-cli.c',
 )
 
-so_version = '1'
+so_version = '2'
 
 libssc = shared_library(
   'ssc',
