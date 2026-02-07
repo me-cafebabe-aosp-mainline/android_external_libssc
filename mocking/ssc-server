@@ -335,4 +335,5 @@ if __name__ == '__main__':
 
         sys.exit(code)
     else:
-        server_start()
+        server = SSCMockingServer(args.port, args.verbose)
+        server_start(server)
