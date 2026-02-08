@@ -39,9 +39,14 @@ General information about libssc, documentation, and other information can be fo
 - `qrtr-libs`
 
 ```
-cd build
-meson ..
-ninja
+meson setup _build
+meson compile -C _build
+```
+
+Tests can be executed with:
+
+```
+meson test -C _build
 ```
 
 ## Linking against libssc
