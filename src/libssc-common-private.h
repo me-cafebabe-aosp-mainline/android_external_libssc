@@ -61,7 +61,7 @@
 #define SSC_ATTRIBUTE_DYNAMIC				17
 #define SSC_ATTRIBUTE_HARDWARE_ID			18
 #define SSC_ATTRIBUTE_RIGID_BODY			19
-#define SSC_ATTRIBUTE_MOUNT_MATRIX				20
+#define SSC_ATTRIBUTE_MOUNT_MATRIX			20
 #define SSC_ATTRIBUTE_PHYSICAL_SENSOR			21
 #define SSC_ATTRIBUTE_PHYSICAL_SENSOR_TESTS		22
 #define SSC_ATTRIBUTE_SELECTED_RESULTION		23
@@ -72,7 +72,27 @@
 #define SSC_STREAM_TYPE_CONTINUOUS			0
 #define SSC_STREAM_TYPE_ON_CHANGE			1
 
+typedef struct {
+	GMutex mutex;
+	GCond condition;
+	GAsyncResult *result;
+	gboolean finished;
+	GObject *object;
+} SyncContext;
+
 void
 ssc_common_dump_protobuf (GArray *protobuf);
+
+void
+ssc_common_init_sync_context (SyncContext *ctx);
+
+void
+ssc_common_clear_sync_context (SyncContext *ctx);
+
+void
+ssc_common_wait_sync_context (SyncContext *ctx);
+
+void
+ssc_common_callback_sync_context (GObject *source, GAsyncResult *result, gpointer user_data);
 
 #endif /* _LIBSSC_COMMON_H_ */

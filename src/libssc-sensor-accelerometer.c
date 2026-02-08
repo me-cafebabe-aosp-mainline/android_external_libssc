@@ -36,20 +36,6 @@ G_DEFINE_TYPE_WITH_CODE (SSCSensorAccelerometer, ssc_sensor_accelerometer, SSC_T
 			 G_ADD_PRIVATE (SSCSensorAccelerometer))
 
 typedef struct {
-	GAsyncResult *result;
-	GMainLoop *loop;
-} SyncContext;
-
-static void
-sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-	SyncContext *ctx = user_data;
-
-	ctx->result = g_object_ref (result);
-	g_main_loop_quit (ctx->loop);
-}
-
-typedef struct {
 	SSCSensorAccelerometer *sensor;
 	gfloat x;
 	gfloat y;
@@ -176,14 +162,11 @@ ssc_sensor_accelerometer_close_sync (SSCSensorAccelerometer *self, GCancellable 
 	gboolean success = FALSE;
 	SyncContext ctx;
 
-	ctx.loop = g_main_loop_new (NULL, FALSE);
-
-	ssc_sensor_accelerometer_close (self, cancellable, sync_cb, &ctx);
-	g_main_loop_run (ctx.loop);
+	ssc_common_init_sync_context (&ctx);
+	ssc_sensor_accelerometer_close (self, cancellable, ssc_common_callback_sync_context, &ctx);
+	ssc_common_wait_sync_context (&ctx);
 	success = ssc_sensor_accelerometer_close_finish (self, ctx.result, error);
-
-	g_main_loop_unref (ctx.loop);
-	g_object_unref (ctx.result);
+	ssc_common_clear_sync_context (&ctx);
 
 	return success;
 }
@@ -242,17 +225,14 @@ ssc_sensor_accelerometer_open (SSCSensorAccelerometer *self, GCancellable *cance
 gboolean
 ssc_sensor_accelerometer_open_sync (SSCSensorAccelerometer *self, GCancellable *cancellable, GError **error)
 {
-	SyncContext ctx;
 	gboolean success = FALSE;
+	SyncContext ctx;
 
-	ctx.loop = g_main_loop_new (NULL, FALSE);
-
-	ssc_sensor_accelerometer_open (self, cancellable, sync_cb, &ctx);
-	g_main_loop_run (ctx.loop);
+	ssc_common_init_sync_context (&ctx);
+	ssc_sensor_accelerometer_open (self, cancellable, ssc_common_callback_sync_context, &ctx);
+	ssc_common_wait_sync_context (&ctx);
 	success = ssc_sensor_accelerometer_open_finish (self, ctx.result, error);
-
-	g_main_loop_unref (ctx.loop);
-	g_object_unref (ctx.result);
+	ssc_common_clear_sync_context (&ctx);
 
 	return success;
 }
@@ -312,15 +292,11 @@ ssc_sensor_accelerometer_new_sync (GCancellable *cancellable, GError **error)
 	SSCSensorAccelerometer *self = NULL;
 	SyncContext ctx;
 
-	ctx.loop = g_main_loop_new (NULL, FALSE);
-
-	/* Create sensor */
-	ssc_sensor_accelerometer_new (cancellable, sync_cb, &ctx);
-	g_main_loop_run (ctx.loop);
+	ssc_common_init_sync_context (&ctx);
+	ssc_sensor_accelerometer_new (cancellable, ssc_common_callback_sync_context, &ctx);
+	ssc_common_wait_sync_context (&ctx);
 	self = ssc_sensor_accelerometer_new_finish (ctx.result, error);
-
-	g_main_loop_unref (ctx.loop);
-	g_object_unref (ctx.result);
+	ssc_common_clear_sync_context (&ctx);
 
 	return self;
 }

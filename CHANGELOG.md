@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Skip tests on ARMv7/armhf due to floating point problems with protobuf-c decoding.
 - Fix printf formats for sensor UIDs.
 - ABI of compass signal.
+- Reworked synchronous handling.
 
 ## [0.3.0] - 2025-12-26
 

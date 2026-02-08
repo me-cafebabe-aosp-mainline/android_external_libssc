@@ -64,21 +64,6 @@ G_DEFINE_TYPE_WITH_CODE (SSCClient, ssc_client, G_TYPE_OBJECT,
 			 G_ADD_PRIVATE (SSCClient)
 			 G_IMPLEMENT_INTERFACE (G_TYPE_ASYNC_INITABLE, async_initable_iface_init));
 
-typedef struct {
-	GMainLoop *loop;
-	GAsyncResult *result;
-	GObject *object;
-} SyncContext;
-
-static void
-sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-	SyncContext *ctx = user_data;
-
-	ctx->result = g_object_ref (result);
-	g_main_loop_quit (ctx->loop);
-}
-
 /*****************************************************************************/
 
 static void
@@ -415,7 +400,6 @@ ssc_client_dispose (GObject *object)
 {
 	QmiDeviceReleaseClientFlags flags = QMI_DEVICE_RELEASE_CLIENT_FLAGS_NONE;
 	SSCClientPrivate *priv = NULL;
-	g_autoptr (GMainContext) context = g_main_context_new ();
 	GError *error = NULL;
 	SyncContext ctx;
 
@@ -426,10 +410,7 @@ ssc_client_dispose (GObject *object)
 		return;
 	}
 
-	/* Sync context */
-	g_main_context_push_thread_default (context);
-	ctx.loop = g_main_loop_new (context, TRUE);
-	ctx.object = object;
+	ssc_common_init_sync_context (&ctx);
 
 	/* Release QMI client */
 	g_debug ("Releasing SSC QMI client");
@@ -441,25 +422,29 @@ ssc_client_dispose (GObject *object)
 				   flags,
 				   10,
 				   NULL,
-				   sync_cb,
+				   ssc_common_callback_sync_context,
 				   &ctx);
-	g_main_loop_run (ctx.loop);
+
+	ssc_common_wait_sync_context (&ctx);
 
 	/* QMI client released, check result */
 	if (!qmi_device_release_client_finish (priv->device, ctx.result, &error))
 		g_warning ("Could not release SSC QMI client: %s\n", error->message);
-	g_object_unref (ctx.result);
+
+	ssc_common_clear_sync_context (&ctx);
 
 	g_debug ("Closing SSC QMI client");
+	ssc_common_init_sync_context (&ctx);
 	qmi_device_close_async (priv->device,
 				10,
 				NULL,
-				sync_cb,
+				ssc_common_callback_sync_context,
 				&ctx);
-	g_main_loop_run (ctx.loop);
+
+	ssc_common_wait_sync_context (&ctx);
+
 	if (!qmi_device_close_finish (priv->device, ctx.result, &error))
 		g_warning ("Could not close SSC QMI client: %s\n", error->message);
-	g_object_unref (ctx.result);
 
 	g_clear_object (&priv->qmi_client_ssc);
 	g_clear_object (&priv->device);
@@ -467,9 +452,7 @@ ssc_client_dispose (GObject *object)
 
 	G_OBJECT_CLASS (ssc_client_parent_class)->dispose (object);
 
-	/* Close context */
-	g_main_context_pop_thread_default (context);
-	g_main_loop_unref (ctx.loop);
+	ssc_common_clear_sync_context (&ctx);
 }
 
 static void

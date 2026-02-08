@@ -39,3 +39,41 @@ ssc_common_dump_protobuf (GArray *protobuf)
 	data = g_string_free (str, FALSE);
 	g_debug ("%s", data);
 }
+
+void
+ssc_common_init_sync_context (SyncContext *ctx) {
+	g_mutex_init (&ctx->mutex);
+	g_cond_init (&ctx->condition);
+	ctx->finished = FALSE;
+	ctx->result = NULL;
+}
+
+void
+ssc_common_wait_sync_context (SyncContext *ctx) {
+	g_mutex_lock (&ctx->mutex);
+	while (!ctx->finished) {
+		g_mutex_unlock (&ctx->mutex);
+		g_main_context_iteration (g_main_context_default (), FALSE);
+		g_mutex_lock (&ctx->mutex);
+	}
+	g_mutex_unlock (&ctx->mutex);
+}
+
+void
+ssc_common_callback_sync_context (GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	SyncContext *ctx = user_data;
+
+	g_mutex_lock (&ctx->mutex);
+	ctx->result = g_object_ref (result);
+	ctx->finished = TRUE;
+	g_cond_signal (&ctx->condition);
+	g_mutex_unlock (&ctx->mutex);
+}
+
+void
+ssc_common_clear_sync_context (SyncContext *ctx) {
+	g_mutex_clear (&ctx->mutex);
+	g_cond_clear (&ctx->condition);
+	g_object_unref (ctx->result);
+}

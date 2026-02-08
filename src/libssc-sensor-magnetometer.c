@@ -36,20 +36,6 @@ G_DEFINE_TYPE_WITH_CODE (SSCSensorMagnetometer, ssc_sensor_magnetometer, SSC_TYP
 			 G_ADD_PRIVATE (SSCSensorMagnetometer))
 
 typedef struct {
-	GAsyncResult *result;
-	GMainLoop *loop;
-} SyncContext;
-
-static void
-sync_cb (GObject *source, GAsyncResult *result, gpointer user_data)
-{
-	SyncContext *ctx = user_data;
-
-	ctx->result = g_object_ref (result);
-	g_main_loop_quit (ctx->loop);
-}
-
-typedef struct {
 	SSCSensorMagnetometer *sensor;
 	gfloat x;
 	gfloat y;
@@ -171,14 +157,11 @@ ssc_sensor_magnetometer_close_sync (SSCSensorMagnetometer *self, GCancellable *c
 	gboolean success = FALSE;
 	SyncContext ctx;
 
-	ctx.loop = g_main_loop_new (NULL, FALSE);
-
-	ssc_sensor_magnetometer_close (self, cancellable, sync_cb, &ctx);
-	g_main_loop_run (ctx.loop);
+	ssc_common_init_sync_context (&ctx);
+	ssc_sensor_magnetometer_close (self, cancellable, ssc_common_callback_sync_context, &ctx);
+	ssc_common_wait_sync_context (&ctx);
 	success = ssc_sensor_magnetometer_close_finish (self, ctx.result, error);
-
-	g_main_loop_unref (ctx.loop);
-	g_object_unref (ctx.result);
+	ssc_common_clear_sync_context (&ctx);
 
 	return success;
 }
@@ -237,17 +220,14 @@ ssc_sensor_magnetometer_open (SSCSensorMagnetometer *self, GCancellable *cancell
 gboolean
 ssc_sensor_magnetometer_open_sync (SSCSensorMagnetometer *self, GCancellable *cancellable, GError **error)
 {
-	SyncContext ctx;
 	gboolean success = FALSE;
+	SyncContext ctx;
 
-	ctx.loop = g_main_loop_new (NULL, FALSE);
-
-	ssc_sensor_magnetometer_open (self, cancellable, sync_cb, &ctx);
-	g_main_loop_run (ctx.loop);
+	ssc_common_init_sync_context (&ctx);
+	ssc_sensor_magnetometer_open (self, cancellable, ssc_common_callback_sync_context, &ctx);
+	ssc_common_wait_sync_context (&ctx);
 	success = ssc_sensor_magnetometer_open_finish (self, ctx.result, error);
-
-	g_main_loop_unref (ctx.loop);
-	g_object_unref (ctx.result);
+	ssc_common_clear_sync_context (&ctx);
 
 	return success;
 }
@@ -307,15 +287,11 @@ ssc_sensor_magnetometer_new_sync (GCancellable *cancellable, GError **error)
 	SSCSensorMagnetometer *self = NULL;
 	SyncContext ctx;
 
-	ctx.loop = g_main_loop_new (NULL, FALSE);
-
-	/* Create sensor */
-	ssc_sensor_magnetometer_new (cancellable, sync_cb, &ctx);
-	g_main_loop_run (ctx.loop);
+	ssc_common_init_sync_context (&ctx);
+	ssc_sensor_magnetometer_new (cancellable, ssc_common_callback_sync_context, &ctx);
+	ssc_common_wait_sync_context (&ctx);
 	self = ssc_sensor_magnetometer_new_finish (ctx.result, error);
-
-	g_main_loop_unref (ctx.loop);
-	g_object_unref (ctx.result);
+	ssc_common_clear_sync_context (&ctx);
 
 	return self;
 }
