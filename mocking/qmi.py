@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # libssc: Library to expose Qualcomm Sensor Core sensors
-# Copyright (C) 2022-2025 Dylan Van Assche
+# Copyright (C) 2022-2026 Dylan Van Assche
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published

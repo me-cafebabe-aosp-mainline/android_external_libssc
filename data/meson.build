@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # libssc: Library to expose Qualcomm Sensor Core sensors
-# Copyright (C) 2022-2025 Dylan Van Assche
+# Copyright (C) 2022-2026 Dylan Van Assche
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published

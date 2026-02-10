@@ -72,4 +72,4 @@ of libssc when the QMI service is not present.
 ## License
 
 Available under the [GPLv3 license](./LICENSE).<br>
-Copyright (c) by libssc Authors (2022-2025)
+Copyright (c) by libssc Authors (2022-2026)
