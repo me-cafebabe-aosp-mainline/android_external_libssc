@@ -22,7 +22,7 @@
 #include "ssc-sensor-suid.pb-c.h"
 #include "libssc-sensor.h"
 
-#define MAX_RETRIES 10
+#define MAX_RETRIES 100
 
 enum {
 	PROP_NAME = 1,
@@ -308,13 +308,14 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 			priv->service_retries++;
 			ssc_suid_response__free_unpacked (suid_msg, NULL);
 
-			/* Fail to discover when service is not available after 30s */
+			/* Fail to discover when service is not available after 100s */
 			if (priv->service_retries >= MAX_RETRIES) {
 				g_signal_handler_disconnect (self, priv->report_id);
 				priv->report_id = 0;
 
 				g_set_error (&error, ssc_sensor_error_quark(), SSC_SENSOR_ERROR_NO_SERVICE,
 					     "Sensor service unavailable");
+				g_warning ("'registry' sensor unavailable, is hexagonrpcd running?");
 				g_task_return_error (ctx->task, error);
 				g_clear_object (&ctx->task);
 				g_slice_free (ReportReceivedContext, ctx);
