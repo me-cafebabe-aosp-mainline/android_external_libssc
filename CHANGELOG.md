@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.1] - 2026-03-01
+
 ### Changed
 - Increased discovery timeout to 100s.
 
@@ -154,3 +156,4 @@ Initial release.
 [0.2.2]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.1...v0.2.2
 [0.3.0]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.2.2...v0.3.0
 [0.4.0]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.3.0...v0.4.0
+[0.4.1]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.4.0...v0.4.1
