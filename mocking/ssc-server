@@ -26,7 +26,7 @@ import signal
 import socket
 import argparse
 import sysconfig
-from multiprocessing import Process
+import multiprocessing as mp
 from ctypes import CDLL, c_int, byref, c_char_p, addressof, create_string_buffer, Structure
 
 # Import build path for running unittests
@@ -36,7 +36,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../data'))
 
 from ssc import *
 
-VERSION = '0.4.1'
+VERSION = '0.4.2'
 
 SSC_SERVICE_ID = 0x190
 SSC_SERVICE_VERSION = 1
@@ -221,7 +221,7 @@ class SSCMockingServer():
                     return
 
                 print(f'ℹ️  Enabling sensor {uid}')
-                self.workers[uid] = Process(target=self._sensor_measurement, args=(uid_high, uid_low, node, port, transaction_id))
+                self.workers[uid] = mp.Process(target=self._sensor_measurement, args=(uid_high, uid_low, node, port, transaction_id))
                 self.workers[uid].start()
             # Sensor disabled, stop sending data
             elif message_id == SSC_PROTOBUF_DISABLE_REPORT_MSG_ID:
@@ -303,6 +303,7 @@ def server_stop(server):
     del server
 
 if __name__ == '__main__':
+    mp.set_start_method('fork')
     parser = argparse.ArgumentParser(prog='ssc-server',
                                      description='SSC QMI service server mocking',
                                      epilog='GPLv3 license, copyright (c) by libssc authors (2024)')
@@ -322,7 +323,7 @@ if __name__ == '__main__':
         # No-service test assumes no SSC service, do not start server
         if 'no-service' not in args.test:
             server = SSCMockingServer(args.port, args.verbose)
-            p = Process(target=server_start, args=(server,))
+            p = mp.Process(target=server_start, args=(server,))
             p.start()
 
         code = ERROR_OK
