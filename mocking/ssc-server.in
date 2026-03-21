@@ -34,7 +34,7 @@ sys.path.append('@PROTOBUF_PYTHON_BUILD_PATH@')
 
 from ssc import *
 
-VERSION = '0.4.2'
+VERSION = '@VERSION@'
 
 SSC_SERVICE_ID = 0x190
 SSC_SERVICE_VERSION = 1
