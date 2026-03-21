@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Improved
+- Do not install mocking test files, only ssc-server to allow mocking libssc stuff on x86.
+- Refer to build paths of Protobuf Python files for the ssc-server by injecting the path during build with meson.
+- Inject the project version during build with meson into ssc-server as well.
+
 ## [0.4.2] - 2026-03-18
 
 ### Fixed
