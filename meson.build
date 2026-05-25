@@ -49,6 +49,10 @@ libssc_glib_include_subdir = libssc_name
 libssc_glib_pkgincludedir = libssc_includedir / libssc_glib_include_subdir
 libssc_mocking_dir = libssc_includedir / libssc_name / 'mocking'
 
+prefix = get_option('prefix')
+libexecdir = prefix / get_option('libexecdir')
+installed_tests_execdir = libexecdir / 'installed-tests' / meson.project_name()
+
 cc = meson.get_compiler('c')
 cc_flags = cc.get_supported_arguments([
   '-Wno-unused-parameter',

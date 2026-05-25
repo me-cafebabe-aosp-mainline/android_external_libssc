@@ -19,7 +19,7 @@ ssc_server = configure_file(
   input: 'ssc-server.in',
   output: '@BASENAME@',
   configuration: ssc_server_conf,
-  install_dir: get_option('bindir'),
+  install_dir: installed_tests_execdir,
 )
 
 # Make the SSC Server available during tests
