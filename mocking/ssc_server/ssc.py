@@ -24,14 +24,14 @@ import random
 from enum import Enum
 from typing import Tuple
 from glob import glob
-from qmi import QMI, ValueType, MessageType
-import ssc_sensor_suid_pb2 as SensorSuid
-import ssc_common_pb2 as SscCommon
-import ssc_sensor_proximity_pb2 as SensorProximity
-import ssc_sensor_accelerometer_pb2 as SensorAccelerometer
-import ssc_sensor_magnetometer_pb2 as SensorMagnetometer
-import ssc_sensor_light_pb2 as SensorLight
-import ssc_sensor_rotationvector_pb2 as SensorCompass
+from ssc_server.qmi import QMI, ValueType, MessageType
+import ssc_server.ssc_sensor_suid_pb2 as SensorSuid
+import ssc_server.ssc_common_pb2 as SscCommon
+import ssc_server.ssc_sensor_proximity_pb2 as SensorProximity
+import ssc_server.ssc_sensor_accelerometer_pb2 as SensorAccelerometer
+import ssc_server.ssc_sensor_magnetometer_pb2 as SensorMagnetometer
+import ssc_server.ssc_sensor_light_pb2 as SensorLight
+import ssc_server.ssc_sensor_rotationvector_pb2 as SensorCompass
 
 SSC_SERVICE_ID = 0x190
 SSC_CLIENT_ID = 1
@@ -101,6 +101,8 @@ class SSC():
         for sensor in glob(os.path.join(os.path.dirname(__file__), 'data', 'sensor-*.json')):
             with open(sensor) as f:
                 data.append(json.load(f))
+
+        print('SSC DATA', data)
 
         return data
 

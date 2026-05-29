@@ -16,6 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+pymod = import('python')
+python = pymod.find_installation()
+python.dependency()
 
 msgs_inc = include_directories('.')
 
@@ -53,9 +56,9 @@ foreach m: msgs
     python_name + '_py',
     input: name + '.proto',
     output: [python_name + '_pb2.py'],
-    command: [protoc_tool, '-I=@CURRENT_SOURCE_DIR@', '--python_out=@OUTDIR@', '@INPUT@'],
+    command: [protoc_tool, '-I=@CURRENT_SOURCE_DIR@', '--python_out=' + join_paths(meson.project_build_root(), 'mocking', 'ssc_server'), '@INPUT@'],
     install: true,
-    install_dir: [libssc_mocking_dir]
+    install_dir: [join_paths(python.get_install_dir(), 'ssc_server')]
   )
   python_gen += protobuf_python_gen[0]
 endforeach

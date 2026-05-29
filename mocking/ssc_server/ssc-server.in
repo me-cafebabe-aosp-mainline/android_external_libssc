@@ -29,10 +29,10 @@ import sysconfig
 import multiprocessing as mp
 from ctypes import CDLL, c_int, byref, c_char_p, addressof, create_string_buffer, Structure
 
-# Import build path for running unittests
-sys.path.append('@PROTOBUF_PYTHON_BUILD_PATH@')
+# Import build path for running unittests as first source
+sys.path.insert(0, '@LIBSSC_MOCKING_PYTHON_BUILD_PATH@')
 
-from ssc import *
+from ssc_server.ssc import *
 
 VERSION = '@VERSION@'
 

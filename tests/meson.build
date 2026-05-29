@@ -4,7 +4,7 @@ cpu = host_machine.cpu()
 if not (family == 'arm' and cpu != 'arm64')
   add_test_setup(
     'mocking',
-    exe_wrapper: join_paths(meson.global_build_root(), 'mocking', 'ssc-server'),
+    exe_wrapper: join_paths(meson.global_build_root(), 'mocking', 'ssc_server', 'ssc-server'),
     is_default: true
   )
   

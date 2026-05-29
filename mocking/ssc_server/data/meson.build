@@ -1,3 +1,7 @@
+pymod = import('python')
+python = pymod.find_installation()
+python.dependency()
+
 mocking_config_sources = files(
   'sensor-accelerometer.json',
   'sensor-magnetometer.json',
@@ -17,3 +21,4 @@ custom_target(
   build_by_default: true
 )
 
+python.install_sources(mocking_config_sources, subdir: join_paths('ssc_server', 'data'))
