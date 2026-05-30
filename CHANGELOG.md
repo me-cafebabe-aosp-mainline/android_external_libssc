@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.3] - 2026-05-31
+
 ### Improved
 - Do not install mocking test files, only ssc-server to allow mocking libssc stuff on x86.
 - Refer to build paths of Protobuf Python files for the ssc-server by injecting the path during build with meson.
@@ -168,3 +170,4 @@ Initial release.
 [0.4.0]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.3.0...v0.4.0
 [0.4.1]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.4.0...v0.4.1
 [0.4.2]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.4.1...v0.4.2
+[0.4.3]: https://codeberg.org/DylanVanAssche/libssc/compare/v0.4.2...v0.4.3
