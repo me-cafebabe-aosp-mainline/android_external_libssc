@@ -1,6 +1,18 @@
 pymod = import('python')
 python = pymod.find_installation()
 python.dependency()
+python_gen = []
+
+msgs = [
+  'common',
+  'sensor-suid',
+  'sensor-proximity',
+  'sensor-light',
+  'sensor-accelerometer',
+  'sensor-magnetometer',
+  'sensor-rotationvector',
+  'sensor-gyroscope',
+]
 
 mocking_sources = files(
   'qmi.py',
@@ -22,13 +34,30 @@ ssc_server = configure_file(
   install_dir: installed_tests_execdir,
 )
 
+foreach m: msgs
+  name = 'ssc-' + m
+
+  # Python
+  python_name = 'ssc_' + m.replace('-', '_')
+  protobuf_python_gen = custom_target (
+    python_name + '_py',
+    input: join_paths(meson.global_source_root(), 'data', name + '.proto'),
+    output: [python_name + '_pb2.py'],
+    command: [protoc_tool, '--proto_path=' + join_paths(meson.global_source_root(), 'data'), '--python_out=' + '@OUTDIR@', name + '.proto'],
+    install: true,
+    install_dir: [join_paths(python.get_install_dir(), 'ssc_server')]
+  )
+  python_gen += protobuf_python_gen[0]
+endforeach
+
 # Make the SSC Server available during tests
-custom_target(
+ssc_server_dep = custom_target(
   'ssc-mocking',
   input: mocking_sources,
   output: ['qmi.py', 'ssc.py', 'ssc-server', 'ssc-server-tests'],
   command: ['cp', '@INPUT@', '@OUTDIR@'],
-  build_by_default: true
+  build_by_default: true,
+  depends: [python_gen]
 )
 
 subdir('data')

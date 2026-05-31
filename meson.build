@@ -101,7 +101,7 @@ sources = files()
 headers = files()
 map_source = files('libssc.map')
 
+subdir('mocking')
 subdir('data')
 subdir('src')
-subdir('mocking')
 subdir('tests')
