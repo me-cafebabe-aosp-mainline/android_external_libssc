@@ -86,6 +86,7 @@ class SSCMockingServer():
         self.workers = {}
         self._qrtr = None
         multiarch = sysconfig.get_config_var('MULTIARCH')
+        libdir = sysconfig.get_config_var('LIBDIR')
 
         print(f'👋 SSC Mocking Server v{VERSION}')
         err = None
@@ -94,11 +95,13 @@ class SSCMockingServer():
           os.path.join(os.path.dirname(__file__), './qrtr/_build/lib/libqrtr.so'),
           # Installed in OS (Alpine)
           '/usr/lib/libqrtr.so.1',
+          # Installed in OS (Fedora and other lib64 distributions)
+          os.path.join(libdir, 'libqrtr.so.1') if libdir else None,
           # Installed in OS (Debian)
           f'/usr/lib/{multiarch}/libqrtr.so.1'
         ]:
           try:
-            if not os.path.exists(path):
+            if path is None or not os.path.exists(path):
                 continue
             print(f'ℹ️  Using QRTR library from {path}')
             self._qrtr = CDLL(path)
