@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- CI/CD using Forgejo Actions.
+
 ## [0.4.4] - 2026-06-27
 
 ### Improved
