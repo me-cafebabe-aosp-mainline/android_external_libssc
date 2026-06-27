@@ -28,14 +28,16 @@ General information about libssc, documentation, and other information can be fo
 
 `libssc` uses the Meson build system with a minimal list of external dependencies:
 
-- `libqmi >=1.33.4`
-- `glib >= 2.56`
-- `protobuf-c`
+- `libqmi-dev >=1.33.4`
+- `glib-dev >= 2.56`
+- `protobuf-c-dev`
+- `gobject-introspection-dev`
 
 `libssc` tests requires an additional dependency to compile the ProtoBuf messages for simulating the DSP QMI responses:
 
-- `protobuf`
-- `python-gobject3`
+- `py3-gobject3-dev`
+- `protobuf-dev`
+- `py3-protobuf`
 - `qrtr-libs`
 
 ```
