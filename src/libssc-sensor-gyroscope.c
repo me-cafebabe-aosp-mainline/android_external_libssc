@@ -111,7 +111,7 @@ gyroscope_close_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_da
 	g_autoptr (GError) error = NULL;
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_gyroscope_parent_class)->close_finish (sensor, result, &error)) {
-		g_task_return_boolean (task, FALSE);
+		g_task_return_error (task, g_steal_pointer (&error));
 		g_object_unref (task);
 		return;
 	}
@@ -175,7 +175,7 @@ gyroscope_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_dat
 	g_autoptr (GError) error = NULL;
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_gyroscope_parent_class)->open_finish (sensor, result, &error)) {
-		g_task_return_boolean (task, FALSE);
+		g_task_return_error (task, g_steal_pointer (&error));
 		g_object_unref (task);
 		return;
 	}
