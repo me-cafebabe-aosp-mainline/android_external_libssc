@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - CI/CD using Forgejo Actions.
 
+### Fixed
+- Propagate the `GError` from the sensor open/close callbacks instead of
+  dropping it, so callers no longer receive a `FALSE` result with a `NULL`
+  error (which crashes consumers that dereference `error->message`).
+
 ## [0.4.4] - 2026-06-27
 
 ### Improved
