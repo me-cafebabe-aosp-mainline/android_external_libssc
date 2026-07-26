@@ -139,17 +139,15 @@ report_received (SSCClient *self, guint32 msg_id, guint64 uid_high, guint64 uid_
 static void
 compass_close_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
 {
-	GTask *task = G_TASK (user_data);
+	g_autoptr (GTask) task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->close_finish (sensor, result, &error)) {
 		g_task_return_error (task, g_steal_pointer (&error));
-		g_object_unref (task);
 		return;
 	}
 
 	g_task_return_boolean (task, TRUE);
-	g_object_unref (task);
 }
 
 gboolean
@@ -203,17 +201,15 @@ ssc_sensor_compass_close_sync (SSCSensorCompass *self, GCancellable *cancellable
 static void
 compass_open_ready (SSCSensor *sensor, GAsyncResult *result, gpointer user_data)
 {
-	GTask *task = G_TASK (user_data);
+	g_autoptr (GTask) task = G_TASK (user_data);
 	g_autoptr (GError) error = NULL;
 
 	if (!SSC_SENSOR_CLASS (ssc_sensor_compass_parent_class)->open_finish (sensor, result, &error)) {
 		g_task_return_error (task, g_steal_pointer (&error));
-		g_object_unref (task);
 		return;
 	}
 
 	g_task_return_boolean (task, TRUE);
-	g_object_unref (task);
 }
 
 gboolean
