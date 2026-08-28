@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// libssc: Library to expose Qualcomm Sensor Core sensors
+// Copyright (C) 2022-2026 Dylan Van Assche
+
+package {
+    default_applicable_licenses: ["external_libssc_license"],
+}
+
+license {
+    name: "external_libssc_license",
+    visibility: [":__subpackages__"],
+    license_kinds: [
+        "SPDX-license-identifier-GPL-3.0",
+    ],
+    license_text: [
+        "LICENSE",
+    ],
+}
+
+cc_defaults {
+    name: "libssc_defaults",
+    cflags: [
+        "-Wno-unused-parameter",
+        "-Wno-cast-function-type",
+        "-Wno-packed",
+    ],
+    vendor_available: true,
+}
+
+cc_defaults {
+    name: "libssc_glib_deps_defaults",
+    cflags: [
+        "-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_56",
+        "-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_56",
+        "-DGLIB_DISABLE_DEPRECATION_WARNINGS",
+        "-DG_LOG_DOMAIN=\"libssc\"",
+    ],
+    shared_libs: [
+        "libgio-2.0",
+        "libglib-2.0",
+        "libgobject-2.0",
+        "libqmi-glib",
+        "libprotobuf-c",
+    ],
+}
+
+cc_library_headers {
+    name: "libssc_top_headers",
+    vendor_available: true,
+    export_include_dirs: [
+        ".",
+        "src",
+        "data",
+    ],
+}
+
+genrule {
+    name: "gen_libssc_version_h",
+    srcs: ["src/libssc-version-private.h.in"],
+    out: ["libssc-version-private.h"],
+    cmd: "sed " +
+         "-e 's|@LIBSSC_MAJOR_VERSION@|0|g' " +
+         "-e 's|@LIBSSC_MINOR_VERSION@|4|g' " +
+         "-e 's|@LIBSSC_PATCH_VERSION@|4|g' " +
+         "$(in) > $(out)",
+}
+
+cc_library_shared {
+    name: "libssc",
+    defaults: [
+        "libssc_defaults",
+        "libssc_glib_deps_defaults",
+    ],
+    srcs: [
+        "src/libssc-common.c",
+        "src/libssc-client.c",
+        "src/libssc-sensor.c",
+        "src/libssc-sensor-proximity.c",
+        "src/libssc-sensor-light.c",
+        "src/libssc-sensor-accelerometer.c",
+        "src/libssc-sensor-magnetometer.c",
+        "src/libssc-sensor-compass.c",
+        "src/libssc-sensor-gyroscope.c",
+        // Pre-generated protobuf-c files (generate with: cd data && protoc-c --c_out=. *.proto)
+        "data/ssc-common.pb-c.c",
+        "data/ssc-sensor-suid.pb-c.c",
+        "data/ssc-sensor-proximity.pb-c.c",
+        "data/ssc-sensor-light.pb-c.c",
+        "data/ssc-sensor-accelerometer.pb-c.c",
+        "data/ssc-sensor-magnetometer.pb-c.c",
+        "data/ssc-sensor-rotationvector.pb-c.c",
+        "data/ssc-sensor-gyroscope.pb-c.c",
+    ],
+    generated_headers: ["gen_libssc_version_h"],
+    local_include_dirs: ["src", "data"],
+    header_libs: ["libssc_top_headers"],
+    export_include_dirs: ["src"],
+    vendor_available: true,
+}
+
+cc_binary {
+    name: "ssccli",
+    defaults: [
+        "libssc_defaults",
+        "libssc_glib_deps_defaults",
+    ],
+    srcs: ["src/libssc-cli.c"],
+    shared_libs: ["libssc"],
+    local_include_dirs: ["src", "data"],
+    header_libs: ["libssc_top_headers"],
+}
