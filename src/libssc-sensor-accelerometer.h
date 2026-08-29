@@ -23,6 +23,8 @@
 #include <gio/gio.h>
 #include "libssc-sensor.h"
 
+G_BEGIN_DECLS
+
 #define SSC_TYPE_SENSOR_ACCELEROMETER (ssc_sensor_accelerometer_get_type())
 
 typedef struct _SSCSensorAccelerometer {
@@ -40,5 +42,7 @@ gboolean                 ssc_sensor_accelerometer_open_sync (SSCSensorAccelerome
 void			 ssc_sensor_accelerometer_close (SSCSensorAccelerometer *self, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data);
 gboolean		 ssc_sensor_accelerometer_close_finish (SSCSensorAccelerometer *self, GAsyncResult *result, GError **error);
 gboolean                 ssc_sensor_accelerometer_close_sync (SSCSensorAccelerometer *self, GCancellable *cancellable, GError **error);
+
+G_END_DECLS
 
 #endif /* _LIBSSC_SENSOR_ACCELEROMETER_H_ */
